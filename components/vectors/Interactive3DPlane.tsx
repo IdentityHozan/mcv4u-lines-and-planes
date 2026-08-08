@@ -1,12 +1,16 @@
 "use client";
 
 import { Html, Line, OrbitControls } from "@react-three/drei";
-import { Canvas } from "@react-three/fiber";
-import { useMemo } from "react";
+import { Canvas, type ThreeEvent, useFrame } from "@react-three/fiber";
+import { useMemo, useRef } from "react";
 import * as THREE from "three";
 
 export type Vector3Value = [number, number, number];
 export type CameraView = "isometric" | "front" | "side" | "top";
+export type ScenePointSelection = {
+  label: string;
+  position: Vector3Value;
+};
 
 type Interactive3DPlaneProps = {
   linePoint: Vector3Value;
@@ -24,6 +28,8 @@ type Interactive3DPlaneProps = {
   showNormalVectors: boolean;
   showObjectLabels: boolean;
   cameraView: CameraView;
+  selectedPoint: ScenePointSelection | null;
+  onSelectPoint: (selection: ScenePointSelection) => void;
 };
 
 const EPSILON = 1e-8;
@@ -38,6 +44,10 @@ function cross(first: Vector3Value, second: Vector3Value): Vector3Value {
     first[2] * second[0] - first[0] * second[2],
     first[0] * second[1] - first[1] * second[0],
   ];
+}
+
+function roundedPoint(point: THREE.Vector3): Vector3Value {
+  return point.toArray().map((value) => Number(value.toFixed(2))) as Vector3Value;
 }
 
 function Arrow({ direction, origin, color, length = 2.5 }: { direction: Vector3Value; origin: Vector3Value; color: string; length?: number }) {
@@ -73,6 +83,69 @@ function ObjectLabel({ position, children, accent = false }: { position: Vector3
         accent ? "border-sky-400/40 bg-sky-950/90 text-sky-100" : "border-white/20 bg-black/90 text-zinc-100"
       }`}>{children}</span>
     </Html>
+  );
+}
+
+function SelectablePoint({
+  position,
+  label,
+  color,
+  size,
+  onSelect,
+}: {
+  position: Vector3Value;
+  label: string;
+  color: string;
+  size: number;
+  onSelect: (selection: ScenePointSelection) => void;
+}) {
+  const select = (event: ThreeEvent<MouseEvent>) => {
+    event.stopPropagation();
+    onSelect({
+      label,
+      position: position.map((value) => Number(value.toFixed(2))) as Vector3Value,
+    });
+  };
+
+  return (
+    <mesh
+      position={position}
+      onClick={select}
+      onPointerOver={(event) => {
+        event.stopPropagation();
+        document.body.style.cursor = "pointer";
+      }}
+      onPointerOut={() => {
+        document.body.style.cursor = "default";
+      }}
+    >
+      <sphereGeometry args={[size, 28, 28]} />
+      <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.75} />
+    </mesh>
+  );
+}
+
+function SelectedPointMarker({ selection }: { selection: ScenePointSelection }) {
+  const markerRef = useRef<THREE.Group>(null);
+
+  useFrame(({ clock }) => {
+    if (!markerRef.current) return;
+    const scale = 1 + Math.sin(clock.elapsedTime * 4) * 0.16;
+    markerRef.current.scale.setScalar(scale);
+  });
+
+  return (
+    <group ref={markerRef} position={selection.position}>
+      <mesh>
+        <sphereGeometry args={[0.34, 24, 24]} />
+        <meshBasicMaterial color="#7dd3fc" transparent opacity={0.32} wireframe />
+      </mesh>
+      <mesh>
+        <sphereGeometry args={[0.07, 18, 18]} />
+        <meshBasicMaterial color="#f5f5f5" />
+      </mesh>
+      <ObjectLabel position={[0, 0.55, 0]} accent>{selection.label}</ObjectLabel>
+    </group>
   );
 }
 
@@ -127,6 +200,8 @@ function Scene(props: Interactive3DPlaneProps) {
     showAxes,
     showNormalVectors,
     showObjectLabels,
+    selectedPoint,
+    onSelectPoint,
   } = props;
 
   const safeDirection = useMemo<Vector3Value>(() => {
@@ -172,6 +247,16 @@ function Scene(props: Interactive3DPlaneProps) {
   const planeVisible = mode === "plane" || mode === "both";
   const lineVisible = mode === "line" || mode === "both";
 
+  const selectPlanePoint = (label: string) => (event: ThreeEvent<MouseEvent>) => {
+    event.stopPropagation();
+    onSelectPoint({ label, position: roundedPoint(event.point) });
+  };
+
+  const showPointer = (event: ThreeEvent<PointerEvent>) => {
+    event.stopPropagation();
+    document.body.style.cursor = "crosshair";
+  };
+
   return (
     <>
       <color attach="background" args={["#0c0c0c"]} />
@@ -182,7 +267,15 @@ function Scene(props: Interactive3DPlaneProps) {
       <NumberedAxes gridSize={gridSize} showNumbers={showNumberLabels} showAxes={showAxes} />
 
       {planeVisible && (
-        <group position={primaryPlane.point} quaternion={primaryPlane.quaternion}>
+        <group
+          position={primaryPlane.point}
+          quaternion={primaryPlane.quaternion}
+          onClick={selectPlanePoint("Point on Plane 1")}
+          onPointerOver={showPointer}
+          onPointerOut={() => {
+            document.body.style.cursor = "default";
+          }}
+        >
           <mesh>
             <planeGeometry args={[planeSize, planeSize]} />
             <meshStandardMaterial color="#38bdf8" transparent opacity={0.13} side={THREE.DoubleSide} depthWrite={false} />
@@ -195,7 +288,15 @@ function Scene(props: Interactive3DPlaneProps) {
       )}
 
       {planeVisible && secondPlaneEnabled && (
-        <group position={secondaryPlane.point} quaternion={secondaryPlane.quaternion}>
+        <group
+          position={secondaryPlane.point}
+          quaternion={secondaryPlane.quaternion}
+          onClick={selectPlanePoint("Point on Plane 2")}
+          onPointerOver={showPointer}
+          onPointerOut={() => {
+            document.body.style.cursor = "default";
+          }}
+        >
           <mesh>
             <planeGeometry args={[planeSize, planeSize]} />
             <meshStandardMaterial color="#f5f5f5" transparent opacity={0.085} side={THREE.DoubleSide} depthWrite={false} />
@@ -210,14 +311,8 @@ function Scene(props: Interactive3DPlaneProps) {
       {lineVisible && (
         <>
           <Line points={lineEndpoints} color="#f5f5f5" lineWidth={2.2} />
-          <mesh position={linePoint}>
-            <sphereGeometry args={[0.13, 24, 24]} />
-            <meshStandardMaterial color="#f5f5f5" emissive="#555555" />
-          </mesh>
-          <mesh position={trackedPoint}>
-            <sphereGeometry args={[0.17, 24, 24]} />
-            <meshStandardMaterial color="#38bdf8" emissive="#1688b8" emissiveIntensity={1.2} />
-          </mesh>
+          <SelectablePoint position={linePoint} label="Line anchor" color="#f5f5f5" size={0.16} onSelect={onSelectPoint} />
+          <SelectablePoint position={trackedPoint.toArray() as Vector3Value} label="Tracked point" color="#38bdf8" size={0.2} onSelect={onSelectPoint} />
           <Arrow direction={safeDirection} origin={linePoint} color="#7dd3fc" />
           {showObjectLabels && (
             <>
@@ -230,10 +325,13 @@ function Scene(props: Interactive3DPlaneProps) {
 
       {lineVisible && planeVisible && linePlaneIntersection && (
         <>
-          <mesh position={linePlaneIntersection}>
-            <sphereGeometry args={[0.22, 28, 28]} />
-            <meshStandardMaterial color="#f5f5f5" emissive="#38bdf8" emissiveIntensity={0.9} />
-          </mesh>
+          <SelectablePoint
+            position={linePlaneIntersection.toArray() as Vector3Value}
+            label="Line-plane intersection"
+            color="#f5f5f5"
+            size={0.24}
+            onSelect={onSelectPoint}
+          />
           {showObjectLabels && <ObjectLabel position={[linePlaneIntersection.x, linePlaneIntersection.y + 0.65, linePlaneIntersection.z]}>Intersection</ObjectLabel>}
         </>
       )}
@@ -254,6 +352,8 @@ function Scene(props: Interactive3DPlaneProps) {
       {planeVisible && secondPlaneEnabled && showObjectLabels && (
         <ObjectLabel position={[secondaryPlane.point.x - 1, secondaryPlane.point.y + 0.6, secondaryPlane.point.z - 1]}>Plane 2</ObjectLabel>
       )}
+
+      {selectedPoint && <SelectedPointMarker selection={selectedPoint} />}
 
       <OrbitControls makeDefault enableDamping dampingFactor={0.08} minDistance={4} maxDistance={Math.max(28, gridSize * 1.8)} target={[0, 0.6, 0]} />
     </>

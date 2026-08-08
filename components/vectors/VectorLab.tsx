@@ -4,10 +4,16 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MathJaxRenderer } from "@/components/ui/MathJaxRenderer";
 import { NumberStepper } from "@/components/ui/NumberStepper";
-import { Interactive3DPlane, type CameraView, type Vector3Value } from "./Interactive3DPlane";
+import {
+  Interactive3DPlane,
+  type CameraView,
+  type ScenePointSelection,
+  type Vector3Value,
+} from "./Interactive3DPlane";
 
 type Mode = "line" | "plane" | "both";
-type ControlPanel = "scene" | "line" | "planes" | "analysis";
+type ControlPanel = "scene" | "line" | "planes" | "motion" | "analysis";
+type AnimationMode = "point" | "plane-shift" | "line-rotate" | "normal-rotate";
 
 type Preset = {
   name: string;
@@ -41,7 +47,15 @@ const controlPanels: Array<{ id: ControlPanel; label: string }> = [
   { id: "scene", label: "Scene" },
   { id: "line", label: "Line" },
   { id: "planes", label: "Planes" },
+  { id: "motion", label: "Motion" },
   { id: "analysis", label: "Analysis" },
+];
+
+const animationModes: Array<{ id: AnimationMode; label: string; value: string }> = [
+  { id: "point", label: "Move point", value: "Parameter t" },
+  { id: "plane-shift", label: "Shift Plane 1", value: "Plane constant k₁" },
+  { id: "line-rotate", label: "Rotate line", value: "Direction vector d" },
+  { id: "normal-rotate", label: "Rotate normal", value: "Normal vector n₁" },
 ];
 
 const defaults = {
@@ -72,6 +86,16 @@ function cross(first: Vector3Value, second: Vector3Value): Vector3Value {
 
 function magnitude(vector: Vector3Value) {
   return Math.sqrt(dot(vector, vector));
+}
+
+function rotateAroundY(vector: Vector3Value, angle: number): Vector3Value {
+  const cosine = Math.cos(angle);
+  const sine = Math.sin(angle);
+  return [
+    Number((vector[0] * cosine + vector[2] * sine).toFixed(4)),
+    vector[1],
+    Number((-vector[0] * sine + vector[2] * cosine).toFixed(4)),
+  ];
 }
 
 function formatNumber(value: number) {
@@ -125,6 +149,8 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
 
 export function VectorLab() {
   const workspaceRef = useRef<HTMLDivElement>(null);
+  const parameterTravelDirectionRef = useRef(1);
+  const planeTravelDirectionRef = useRef(1);
   const [linePoint, setLinePoint] = useState<Vector3Value>(defaults.linePoint);
   const [lineDirection, setLineDirection] = useState<Vector3Value>(defaults.lineDirection);
   const [planeNormal, setPlaneNormal] = useState<Vector3Value>(defaults.planeNormal);
@@ -141,6 +167,9 @@ export function VectorLab() {
   const [showObjectLabels, setShowObjectLabels] = useState(defaults.showObjectLabels);
   const [cameraView, setCameraView] = useState<CameraView>(defaults.cameraView);
   const [animating, setAnimating] = useState(false);
+  const [animationMode, setAnimationMode] = useState<AnimationMode>("point");
+  const [animationSpeed, setAnimationSpeed] = useState(1);
+  const [selectedPoint, setSelectedPoint] = useState<ScenePointSelection | null>(null);
   const [copyStatus, setCopyStatus] = useState("");
   const [controlsOpen, setControlsOpen] = useState(true);
   const [activePanel, setActivePanel] = useState<ControlPanel>("scene");
@@ -153,15 +182,49 @@ export function VectorLab() {
     const animate = (time: number) => {
       const elapsed = Math.min(0.05, (time - previous) / 1000);
       previous = time;
-      setParameter((current) => {
-        const next = current + elapsed * 1.4;
-        return next > 3 ? -3 : next;
-      });
+      const step = elapsed * animationSpeed;
+
+      if (animationMode === "point") {
+        setParameter((current) => {
+          let next = current + step * 1.4 * parameterTravelDirectionRef.current;
+          if (next >= 3) {
+            next = 3;
+            parameterTravelDirectionRef.current = -1;
+          } else if (next <= -3) {
+            next = -3;
+            parameterTravelDirectionRef.current = 1;
+          }
+          return Number(next.toFixed(3));
+        });
+      }
+
+      if (animationMode === "plane-shift") {
+        setPlaneConstant((current) => {
+          let next = current + step * 1.8 * planeTravelDirectionRef.current;
+          if (next >= 6) {
+            next = 6;
+            planeTravelDirectionRef.current = -1;
+          } else if (next <= -6) {
+            next = -6;
+            planeTravelDirectionRef.current = 1;
+          }
+          return Number(next.toFixed(3));
+        });
+      }
+
+      if (animationMode === "line-rotate") {
+        setLineDirection((current) => rotateAroundY(current, step * 0.75));
+      }
+
+      if (animationMode === "normal-rotate") {
+        setPlaneNormal((current) => rotateAroundY(current, step * 0.65));
+      }
+
       frame = requestAnimationFrame(animate);
     };
     frame = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(frame);
-  }, [animating]);
+  }, [animating, animationMode, animationSpeed]);
 
   useEffect(() => {
     if (!copyStatus) return;
@@ -211,6 +274,13 @@ export function VectorLab() {
     linePoint[2] + parameter * lineDirection[2],
   ];
 
+  const animationReadout = {
+    point: `t = ${formatNumber(parameter)}`,
+    "plane-shift": `k₁ = ${formatNumber(planeConstant)}`,
+    "line-rotate": `d = (${lineDirection.map(formatNumber).join(", ")})`,
+    "normal-rotate": `n₁ = (${planeNormal.map(formatNumber).join(", ")})`,
+  }[animationMode];
+
   const applyPreset = (preset: Preset) => {
     setLinePoint(preset.linePoint);
     setLineDirection(preset.lineDirection);
@@ -222,6 +292,10 @@ export function VectorLab() {
     setParameter(0);
     setMode("both");
     setAnimating(false);
+    setAnimationMode("point");
+    setSelectedPoint(null);
+    parameterTravelDirectionRef.current = 1;
+    planeTravelDirectionRef.current = 1;
   };
 
   const reset = () => {
@@ -232,6 +306,28 @@ export function VectorLab() {
     setShowNormalVectors(true);
     setShowObjectLabels(true);
     setCameraView("isometric");
+    setAnimationSpeed(1);
+  };
+
+  const resetAnimationValue = () => {
+    setAnimating(false);
+    parameterTravelDirectionRef.current = 1;
+    planeTravelDirectionRef.current = 1;
+    if (animationMode === "point") setParameter(0);
+    if (animationMode === "plane-shift") setPlaneConstant(defaults.planeConstant);
+    if (animationMode === "line-rotate") setLineDirection(defaults.lineDirection);
+    if (animationMode === "normal-rotate") setPlaneNormal(defaults.planeNormal);
+  };
+
+  const chooseAnimationMode = (nextMode: AnimationMode) => {
+    setAnimationMode(nextMode);
+    if (nextMode === "point" || nextMode === "line-rotate") {
+      setMode((current) => current === "plane" ? "both" : current);
+    }
+    if (nextMode === "plane-shift" || nextMode === "normal-rotate") {
+      setMode((current) => current === "line" ? "both" : current);
+    }
+    if (nextMode === "normal-rotate") setShowNormalVectors(true);
   };
 
   const copyEquations = async () => {
@@ -309,11 +405,28 @@ export function VectorLab() {
             showNormalVectors={showNormalVectors}
             showObjectLabels={showObjectLabels}
             cameraView={cameraView}
+            selectedPoint={selectedPoint}
+            onSelectPoint={setSelectedPoint}
           />
 
           <div className="pointer-events-none absolute left-3 top-3 hidden border border-white/15 bg-black/85 px-3 py-2 text-[11px] text-zinc-300 backdrop-blur sm:block">
-            Drag to rotate. Scroll or pinch to zoom.
+            Click a point or plane to inspect it. Drag to rotate. Scroll or pinch to zoom.
           </div>
+
+          {selectedPoint && (
+            <div className="absolute right-3 top-3 border border-sky-400/30 bg-black/90 px-3 py-2.5 shadow-xl backdrop-blur">
+              <div className="flex items-start justify-between gap-5">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-300">Selected point</p>
+                  <p className="mt-1 text-xs font-semibold text-zinc-100">{selectedPoint.label}</p>
+                  <p className="mt-1 font-mono text-[11px] text-sky-200">({selectedPoint.position.map(formatNumber).join(", ")})</p>
+                </div>
+                <button type="button" onClick={() => setSelectedPoint(null)} className="text-[11px] font-semibold text-zinc-400 hover:text-zinc-100">
+                  Clear
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="pointer-events-none absolute bottom-3 left-3 max-w-[calc(100%-1.5rem)] border border-sky-400/25 bg-black/90 px-4 py-3 shadow-2xl backdrop-blur sm:max-w-sm">
             <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-300">Line and Plane 1</p>
@@ -364,7 +477,7 @@ export function VectorLab() {
                       Close panel
                     </button>
                   </div>
-                  <div className="grid grid-cols-4" role="tablist" aria-label="Visualizer control sections">
+                  <div className="grid grid-cols-5" role="tablist" aria-label="Visualizer control sections">
                     {controlPanels.map((panel) => (
                       <button
                         key={panel.id}
@@ -513,11 +626,18 @@ export function VectorLab() {
                         </div>
                         <button
                           type="button"
-                          onClick={() => setAnimating((current) => !current)}
-                          className={`mt-4 w-full ${animating ? "primary-action" : "secondary-action"}`}
-                          aria-pressed={animating}
+                          onClick={() => {
+                            if (animating && animationMode === "point") {
+                              setAnimating(false);
+                            } else {
+                              chooseAnimationMode("point");
+                              setAnimating(true);
+                            }
+                          }}
+                          className={`mt-4 w-full ${animating && animationMode === "point" ? "primary-action" : "secondary-action"}`}
+                          aria-pressed={animating && animationMode === "point"}
                         >
-                          {animating ? "Stop animation" : "Animate point"}
+                          {animating && animationMode === "point" ? "Stop point animation" : "Animate point"}
                         </button>
                       </section>
                     </div>
@@ -570,8 +690,107 @@ export function VectorLab() {
                     </div>
                   )}
 
+                  {activePanel === "motion" && (
+                    <div className="space-y-7">
+                      <section>
+                        <h2 className="text-sm font-semibold text-zinc-100">Animation</h2>
+                        <div className="mt-3 grid grid-cols-2 gap-2" role="group" aria-label="Animation mode">
+                          {animationModes.map((item) => (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => chooseAnimationMode(item.id)}
+                              aria-pressed={animationMode === item.id}
+                              className={`min-h-[68px] border p-3 text-left transition ${
+                                animationMode === item.id
+                                  ? "border-sky-400/45 bg-sky-400/[0.09] text-sky-100"
+                                  : "border-white/12 bg-[#0b0b0b] text-zinc-300 hover:border-white/25"
+                              }`}
+                            >
+                              <span className="block text-xs font-semibold">{item.label}</span>
+                              <span className="mt-1 block text-[10px] text-zinc-500">{item.value}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </section>
+
+                      <section className="border-t border-white/10 pt-6">
+                        <div className="border border-sky-400/20 bg-sky-400/[0.045] px-4 py-3">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-300">
+                            {animationModes.find((item) => item.id === animationMode)?.label}
+                          </p>
+                          <p className="mt-2 break-words font-mono text-xs text-zinc-100">{animationReadout}</p>
+                        </div>
+
+                        <div className="mt-5">
+                          <NumberStepper
+                            label="Animation speed"
+                            value={animationSpeed}
+                            step={0.25}
+                            min={0.25}
+                            max={2.5}
+                            onChange={setAnimationSpeed}
+                          />
+                          <input
+                            className="range-input mt-4 w-full"
+                            type="range"
+                            min="0.25"
+                            max="2.5"
+                            step="0.25"
+                            value={animationSpeed}
+                            onChange={(event) => setAnimationSpeed(Number(event.target.value))}
+                            aria-label="Animation speed slider"
+                          />
+                        </div>
+
+                        <div className="mt-5 grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setAnimating((current) => !current)}
+                            className={animating ? "primary-action" : "secondary-action"}
+                            aria-pressed={animating}
+                          >
+                            {animating ? "Stop animation" : "Start animation"}
+                          </button>
+                          <button type="button" onClick={resetAnimationValue} className="secondary-action">
+                            Reset motion
+                          </button>
+                        </div>
+                      </section>
+
+                      <section className="border-t border-white/10 pt-6">
+                        <h2 className="text-sm font-semibold text-zinc-100">Current vectors</h2>
+                        <div className="mt-3 space-y-2 border border-white/10 bg-[#0b0b0b] p-4 font-mono text-xs">
+                          <p className="text-zinc-200">d = ({lineDirection.map(formatNumber).join(", ")})</p>
+                          <p className="text-sky-200">n₁ = ({planeNormal.map(formatNumber).join(", ")})</p>
+                        </div>
+                      </section>
+                    </div>
+                  )}
+
                   {activePanel === "analysis" && (
                     <div className="space-y-7">
+                      <section>
+                        <div className="flex items-center justify-between gap-4">
+                          <h2 className="text-sm font-semibold text-zinc-100">Selected coordinate</h2>
+                          {selectedPoint && (
+                            <button type="button" onClick={() => setSelectedPoint(null)} className="visualizer-toolbar-button">
+                              Clear selection
+                            </button>
+                          )}
+                        </div>
+                        <div className="mt-3 border border-sky-400/20 bg-sky-400/[0.045] p-4">
+                          {selectedPoint ? (
+                            <>
+                              <p className="text-xs font-semibold text-zinc-100">{selectedPoint.label}</p>
+                              <p className="mt-2 font-mono text-sm text-sky-200">({selectedPoint.position.map(formatNumber).join(", ")})</p>
+                            </>
+                          ) : (
+                            <p className="text-xs leading-5 text-zinc-400">Select the anchor, tracked point, intersection, or a position on either plane.</p>
+                          )}
+                        </div>
+                      </section>
+
                       <section>
                         <div className="flex items-center justify-between gap-4">
                           <h2 className="text-sm font-semibold text-zinc-100">Equations</h2>
