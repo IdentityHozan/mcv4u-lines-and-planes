@@ -1,12 +1,13 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MathJaxRenderer } from "@/components/ui/MathJaxRenderer";
 import { NumberStepper } from "@/components/ui/NumberStepper";
 import { Interactive3DPlane, type CameraView, type Vector3Value } from "./Interactive3DPlane";
 
 type Mode = "line" | "plane" | "both";
+type ControlPanel = "scene" | "line" | "planes" | "analysis";
 
 type Preset = {
   name: string;
@@ -34,6 +35,13 @@ const cameraViews: Array<{ id: CameraView; label: string }> = [
   { id: "front", label: "Front" },
   { id: "side", label: "Side" },
   { id: "top", label: "Top" },
+];
+
+const controlPanels: Array<{ id: ControlPanel; label: string }> = [
+  { id: "scene", label: "Scene" },
+  { id: "line", label: "Line" },
+  { id: "planes", label: "Planes" },
+  { id: "analysis", label: "Analysis" },
 ];
 
 const defaults = {
@@ -116,6 +124,7 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
 }
 
 export function VectorLab() {
+  const workspaceRef = useRef<HTMLDivElement>(null);
   const [linePoint, setLinePoint] = useState<Vector3Value>(defaults.linePoint);
   const [lineDirection, setLineDirection] = useState<Vector3Value>(defaults.lineDirection);
   const [planeNormal, setPlaneNormal] = useState<Vector3Value>(defaults.planeNormal);
@@ -133,6 +142,9 @@ export function VectorLab() {
   const [cameraView, setCameraView] = useState<CameraView>(defaults.cameraView);
   const [animating, setAnimating] = useState(false);
   const [copyStatus, setCopyStatus] = useState("");
+  const [controlsOpen, setControlsOpen] = useState(true);
+  const [activePanel, setActivePanel] = useState<ControlPanel>("scene");
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     if (!animating) return;
@@ -156,6 +168,14 @@ export function VectorLab() {
     const timer = window.setTimeout(() => setCopyStatus(""), 1800);
     return () => window.clearTimeout(timer);
   }, [copyStatus]);
+
+  useEffect(() => {
+    const updateFullscreenState = () => {
+      setIsFullscreen(document.fullscreenElement === workspaceRef.current);
+    };
+    document.addEventListener("fullscreenchange", updateFullscreenState);
+    return () => document.removeEventListener("fullscreenchange", updateFullscreenState);
+  }, []);
 
   const lineRelationship = useMemo(() => {
     if (magnitude(planeNormal) < EPSILON) return { title: "Plane normal required", detail: "Enter a non-zero normal vector.", math: String.raw`\[\vec n\ne\vec 0\]` };
@@ -228,28 +248,51 @@ export function VectorLab() {
     }
   };
 
-  return (
-    <div className="overflow-hidden border border-white/10 bg-[#101010]">
-      <div className="border-b border-white/10 p-5 sm:p-7">
-        <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
-          <div>
-            <p className="micro-label text-sky-300">Starting configurations</p>
-            <h2 className="mt-2 text-xl font-semibold text-zinc-100">Choose a relationship to examine</h2>
-          </div>
-          <button type="button" onClick={reset} className="secondary-action">Reset all values</button>
-        </div>
-        <div className="mt-5 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-          {presets.map((preset) => (
-            <button key={preset.name} type="button" onClick={() => applyPreset(preset)} className="border border-white/12 bg-[#0b0b0b] p-4 text-left transition hover:border-sky-400/40 hover:bg-sky-400/[0.05]">
-              <span className="block text-sm font-semibold text-zinc-100">{preset.name}</span>
-              <span className="mt-1 block text-xs text-zinc-400">{preset.description}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+  const toggleFullscreen = async () => {
+    try {
+      if (document.fullscreenElement === workspaceRef.current) {
+        await document.exitFullscreen();
+      } else {
+        await workspaceRef.current?.requestFullscreen();
+      }
+    } catch {
+      setCopyStatus("Full screen is unavailable in this browser");
+    }
+  };
 
-      <div className="grid xl:grid-cols-[minmax(0,1fr)_460px]">
-        <div className="relative min-h-[600px] border-b border-white/10 xl:min-h-[820px] xl:border-b-0 xl:border-r">
+  return (
+    <div
+      ref={workspaceRef}
+      className="visualizer-workspace flex h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-[#0a0a0a] sm:h-[calc(100dvh-4.5rem)]"
+    >
+      <header className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-[#0d0d0d] px-3 py-2 sm:px-5">
+        <div className="min-w-0">
+          <h1 className="truncate text-sm font-semibold text-zinc-100 sm:text-base">3D Visualizer</h1>
+          <p className="hidden truncate text-[11px] text-zinc-400 sm:block" role="status">
+            {copyStatus || lineRelationship.title}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <button type="button" onClick={reset} className="visualizer-toolbar-button">
+            Reset
+          </button>
+          <button type="button" onClick={() => void toggleFullscreen()} className="visualizer-toolbar-button">
+            {isFullscreen ? "Exit full screen" : "Full screen"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setControlsOpen((current) => !current)}
+            className="visualizer-toolbar-button border-sky-400/30 text-sky-200"
+            aria-expanded={controlsOpen}
+            aria-controls="visualizer-controls"
+          >
+            {controlsOpen ? "Hide panel" : "Show panel"}
+          </button>
+        </div>
+      </header>
+
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
+        <div className="relative min-w-0 flex-1">
           <Interactive3DPlane
             linePoint={linePoint}
             lineDirection={lineDirection}
@@ -267,102 +310,312 @@ export function VectorLab() {
             showObjectLabels={showObjectLabels}
             cameraView={cameraView}
           />
-          <div className="pointer-events-none absolute left-4 top-4 border border-white/15 bg-black/85 px-3 py-2 text-[11px] text-zinc-300 backdrop-blur">
-            Drag to rotate. Scroll to zoom.
+
+          <div className="pointer-events-none absolute left-3 top-3 hidden border border-white/15 bg-black/85 px-3 py-2 text-[11px] text-zinc-300 backdrop-blur sm:block">
+            Drag to rotate. Scroll or pinch to zoom.
           </div>
-          <div className="pointer-events-none absolute bottom-4 left-4 right-4 flex flex-wrap gap-2">
-            <div className="border border-white/15 bg-black/85 px-3 py-2 text-[11px] text-zinc-200">White: line and Plane 2</div>
-            <div className="border border-sky-400/25 bg-black/85 px-3 py-2 text-[11px] text-sky-200">Blue: Plane 1 and vectors</div>
+
+          <div className="pointer-events-none absolute bottom-3 left-3 max-w-[calc(100%-1.5rem)] border border-sky-400/25 bg-black/90 px-4 py-3 shadow-2xl backdrop-blur sm:max-w-sm">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-300">Line and Plane 1</p>
+            <p className="mt-1 text-sm font-semibold text-zinc-100">{lineRelationship.title}</p>
+            <p className="mt-0.5 text-xs text-zinc-400">{lineRelationship.detail}</p>
+            {planeRelationship && (
+              <div className="mt-3 border-t border-white/10 pt-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400">Plane 1 and Plane 2</p>
+                <p className="mt-1 text-xs font-semibold text-zinc-200">{planeRelationship.title}</p>
+              </div>
+            )}
+          </div>
+
+          <div className="pointer-events-none absolute bottom-3 right-3 hidden flex-col items-end gap-1 text-[10px] sm:flex">
+            <span className="border border-sky-400/25 bg-black/85 px-2.5 py-1.5 text-sky-200">Blue: Plane 1 and vectors</span>
+            <span className="border border-white/15 bg-black/85 px-2.5 py-1.5 text-zinc-200">White: line and Plane 2</span>
           </div>
         </div>
 
-        <motion.div layout className="space-y-7 p-5 sm:p-7">
-          <section>
-            <h3 className="text-base font-semibold text-zinc-100">View</h3>
-            <div className="mt-3 grid grid-cols-2 gap-2" role="group" aria-label="Camera view">
-              {cameraViews.map((view) => (
-                <button key={view.id} type="button" onClick={() => setCameraView(view.id)} aria-pressed={cameraView === view.id} className={`min-h-10 border px-3 text-xs font-semibold ${cameraView === view.id ? "border-sky-400/45 bg-sky-400/[0.09] text-sky-200" : "border-white/12 bg-[#0b0b0b] text-zinc-400 hover:border-white/25"}`}>{view.label}</button>
-              ))}
-            </div>
-            <div className="mt-4 grid grid-cols-3 gap-2" role="group" aria-label="Visible objects">
-              {(["line", "plane", "both"] as Mode[]).map((item) => (
-                <button key={item} type="button" onClick={() => setMode(item)} aria-pressed={mode === item} className={`min-h-10 border px-3 text-xs font-semibold capitalize ${mode === item ? "border-sky-400/45 bg-sky-400/[0.09] text-sky-200" : "border-white/12 bg-[#0b0b0b] text-zinc-400 hover:border-white/25"}`}>{item}</button>
-              ))}
-            </div>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <Toggle label="Grid numbers" checked={showNumberLabels} onChange={setShowNumberLabels} />
-              <Toggle label="Axes" checked={showAxes} onChange={setShowAxes} />
-              <Toggle label="Vector directions" checked={showNormalVectors} onChange={setShowNormalVectors} />
-              <Toggle label="Object labels" checked={showObjectLabels} onChange={setShowObjectLabels} />
-              <Toggle label="Plane 2" checked={secondPlaneEnabled} onChange={setSecondPlaneEnabled} />
-            </div>
-            <label className="mt-5 block">
-              <span className="mb-2 flex items-center justify-between text-xs font-semibold text-zinc-300">Grid extent <b className="font-mono font-normal text-sky-300">{gridSize}</b></span>
-              <input className="range-input w-full" type="range" min="12" max="28" step="2" value={gridSize} onChange={(event) => setGridSize(Number(event.target.value))} />
-            </label>
-          </section>
+        <AnimatePresence initial={false}>
+          {controlsOpen && (
+            <>
+              <motion.button
+                type="button"
+                aria-label="Close controls"
+                onClick={() => setControlsOpen(false)}
+                className="absolute inset-0 z-20 bg-black/55 lg:hidden"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              />
+              <motion.aside
+                id="visualizer-controls"
+                className="visualizer-control-scroll absolute inset-y-0 right-0 z-30 w-[min(92vw,440px)] shrink-0 overflow-y-auto border-l border-white/10 bg-[#101010] shadow-[-24px_0_70px_rgba(0,0,0,0.55)] lg:static lg:shadow-none"
+                initial={{ x: 24, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: 24, opacity: 0 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
+                aria-label="Visualizer controls"
+              >
+                <div className="sticky top-0 z-10 border-b border-white/10 bg-[#101010]/95 backdrop-blur-xl">
+                  <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-5">
+                    <div>
+                      <p className="text-sm font-semibold text-zinc-100">Controls</p>
+                      <p className="text-[11px] text-zinc-500">{controlPanels.find((panel) => panel.id === activePanel)?.label}</p>
+                    </div>
+                    <button type="button" onClick={() => setControlsOpen(false)} className="visualizer-toolbar-button lg:hidden">
+                      Close panel
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-4" role="tablist" aria-label="Visualizer control sections">
+                    {controlPanels.map((panel) => (
+                      <button
+                        key={panel.id}
+                        id={`visualizer-tab-${panel.id}`}
+                        type="button"
+                        role="tab"
+                        aria-selected={activePanel === panel.id}
+                        aria-controls={`visualizer-panel-${panel.id}`}
+                        onClick={() => setActivePanel(panel.id)}
+                        className={`min-h-11 border-t px-2 text-[11px] font-semibold transition ${
+                          activePanel === panel.id
+                            ? "border-sky-400/50 bg-sky-400/[0.08] text-sky-200"
+                            : "border-white/10 text-zinc-500 hover:bg-white/[0.03] hover:text-zinc-200"
+                        }`}
+                      >
+                        {panel.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-          <section className="space-y-6 border-t border-white/10 pt-7">
-            <h3 className="text-base font-semibold text-zinc-100">Line</h3>
-            <NumericVectorInput label="Anchor point r₀" value={linePoint} onChange={setLinePoint} />
-            <NumericVectorInput label="Direction vector d" value={lineDirection} onChange={setLineDirection} />
-            <div>
-              <NumberStepper label="Parameter t" value={parameter} step={0.1} min={-3} max={3} onChange={setParameter} />
-              <input className="range-input mt-4 w-full" type="range" min="-3" max="3" step="0.1" value={parameter} onChange={(event) => setParameter(Number(event.target.value))} aria-label="Parameter t slider" />
-              <button type="button" onClick={() => setAnimating((current) => !current)} className="secondary-action mt-4 w-full">{animating ? "Stop animation" : "Animate point"}</button>
-            </div>
-          </section>
+                <motion.div
+                  key={activePanel}
+                  id={`visualizer-panel-${activePanel}`}
+                  role="tabpanel"
+                  aria-labelledby={`visualizer-tab-${activePanel}`}
+                  className="p-4 sm:p-5"
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  {activePanel === "scene" && (
+                    <div className="space-y-7">
+                      <section>
+                        <h2 className="text-sm font-semibold text-zinc-100">Starting configuration</h2>
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                          {presets.map((preset) => (
+                            <button
+                              key={preset.name}
+                              type="button"
+                              onClick={() => applyPreset(preset)}
+                              className="min-h-[76px] border border-white/12 bg-[#0b0b0b] p-3 text-left transition hover:border-sky-400/40 hover:bg-sky-400/[0.05]"
+                            >
+                              <span className="block text-xs font-semibold text-zinc-100">{preset.name}</span>
+                              <span className="mt-1 block text-[10px] leading-4 text-zinc-500">{preset.description}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </section>
 
-          <section className="space-y-6 border-t border-white/10 pt-7">
-            <h3 className="text-base font-semibold text-zinc-100">Plane 1</h3>
-            <NumericVectorInput label="Normal vector n₁" value={planeNormal} onChange={setPlaneNormal} />
-            <NumberStepper label="Plane constant k₁" value={planeConstant} step={0.1} min={-6} max={6} onChange={setPlaneConstant} />
-            <input className="range-input w-full" type="range" min="-6" max="6" step="0.1" value={planeConstant} onChange={(event) => setPlaneConstant(Number(event.target.value))} aria-label="Plane 1 constant slider" />
-          </section>
+                      <section className="border-t border-white/10 pt-6">
+                        <h2 className="text-sm font-semibold text-zinc-100">Camera</h2>
+                        <div className="mt-3 grid grid-cols-2 gap-2" role="group" aria-label="Camera view">
+                          {cameraViews.map((view) => (
+                            <button
+                              key={view.id}
+                              type="button"
+                              onClick={() => setCameraView(view.id)}
+                              aria-pressed={cameraView === view.id}
+                              className={`min-h-10 border px-3 text-xs font-semibold ${
+                                cameraView === view.id
+                                  ? "border-sky-400/45 bg-sky-400/[0.09] text-sky-200"
+                                  : "border-white/12 bg-[#0b0b0b] text-zinc-400 hover:border-white/25"
+                              }`}
+                            >
+                              {view.label}
+                            </button>
+                          ))}
+                        </div>
+                      </section>
 
-          {secondPlaneEnabled && (
-            <section className="space-y-6 border-t border-white/10 pt-7">
-              <h3 className="text-base font-semibold text-zinc-100">Plane 2</h3>
-              <NumericVectorInput label="Normal vector n₂" value={secondPlaneNormal} onChange={setSecondPlaneNormal} />
-              <NumberStepper label="Plane constant k₂" value={secondPlaneConstant} step={0.1} min={-6} max={6} onChange={setSecondPlaneConstant} />
-              <input className="range-input w-full" type="range" min="-6" max="6" step="0.1" value={secondPlaneConstant} onChange={(event) => setSecondPlaneConstant(Number(event.target.value))} aria-label="Plane 2 constant slider" />
-            </section>
+                      <section className="border-t border-white/10 pt-6">
+                        <h2 className="text-sm font-semibold text-zinc-100">Objects</h2>
+                        <div className="mt-3 grid grid-cols-3 gap-2" role="group" aria-label="Visible objects">
+                          {(["line", "plane", "both"] as Mode[]).map((item) => (
+                            <button
+                              key={item}
+                              type="button"
+                              onClick={() => setMode(item)}
+                              aria-pressed={mode === item}
+                              className={`min-h-10 border px-2 text-xs font-semibold capitalize ${
+                                mode === item
+                                  ? "border-sky-400/45 bg-sky-400/[0.09] text-sky-200"
+                                  : "border-white/12 bg-[#0b0b0b] text-zinc-400 hover:border-white/25"
+                              }`}
+                            >
+                              {item}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="mt-3 grid grid-cols-2 gap-2">
+                          <Toggle label="Grid numbers" checked={showNumberLabels} onChange={setShowNumberLabels} />
+                          <Toggle label="Axes" checked={showAxes} onChange={setShowAxes} />
+                          <Toggle label="Vectors" checked={showNormalVectors} onChange={setShowNormalVectors} />
+                          <Toggle label="Object labels" checked={showObjectLabels} onChange={setShowObjectLabels} />
+                          <Toggle label="Plane 2" checked={secondPlaneEnabled} onChange={setSecondPlaneEnabled} />
+                        </div>
+                        <label className="mt-5 block">
+                          <span className="mb-2 flex items-center justify-between text-xs font-semibold text-zinc-300">
+                            Grid extent
+                            <b className="font-mono font-normal text-sky-300">{gridSize}</b>
+                          </span>
+                          <input
+                            className="range-input w-full"
+                            type="range"
+                            min="12"
+                            max="28"
+                            step="2"
+                            value={gridSize}
+                            onChange={(event) => setGridSize(Number(event.target.value))}
+                          />
+                        </label>
+                      </section>
+                    </div>
+                  )}
+
+                  {activePanel === "line" && (
+                    <div className="space-y-7">
+                      <section>
+                        <h2 className="text-sm font-semibold text-zinc-100">Line equation</h2>
+                        <MathJaxRenderer
+                          math={`\\(\\vec r=(${linePoint.join(",")})+t(${lineDirection.join(",")})\\)`}
+                          className="mt-3 border border-white/10 bg-[#0b0b0b] p-3 text-sm text-zinc-100"
+                        />
+                      </section>
+                      <NumericVectorInput label="Anchor point r₀" value={linePoint} onChange={setLinePoint} />
+                      <NumericVectorInput label="Direction vector d" value={lineDirection} onChange={setLineDirection} />
+                      <section className="border-t border-white/10 pt-6">
+                        <h2 className="text-sm font-semibold text-zinc-100">Tracked point</h2>
+                        <div className="mt-4">
+                          <NumberStepper label="Parameter t" value={parameter} step={0.1} min={-3} max={3} onChange={setParameter} />
+                          <input
+                            className="range-input mt-4 w-full"
+                            type="range"
+                            min="-3"
+                            max="3"
+                            step="0.1"
+                            value={parameter}
+                            onChange={(event) => setParameter(Number(event.target.value))}
+                            aria-label="Parameter t slider"
+                          />
+                        </div>
+                        <div className="mt-3 flex items-center justify-between gap-3 border border-sky-400/20 bg-sky-400/[0.045] px-3 py-3 text-xs">
+                          <span className="text-zinc-400">Point at t = {formatNumber(parameter)}</span>
+                          <span className="font-mono font-semibold text-sky-200">({trackedPoint.map(formatNumber).join(", ")})</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setAnimating((current) => !current)}
+                          className={`mt-4 w-full ${animating ? "primary-action" : "secondary-action"}`}
+                          aria-pressed={animating}
+                        >
+                          {animating ? "Stop animation" : "Animate point"}
+                        </button>
+                      </section>
+                    </div>
+                  )}
+
+                  {activePanel === "planes" && (
+                    <div className="space-y-7">
+                      <section className="space-y-5">
+                        <div>
+                          <h2 className="text-sm font-semibold text-zinc-100">Plane 1</h2>
+                          <MathJaxRenderer math={`\\(${formatPlaneEquation(planeNormal, planeConstant)}\\)`} className="mt-2 text-sm text-sky-200" />
+                        </div>
+                        <NumericVectorInput label="Normal vector n₁" value={planeNormal} onChange={setPlaneNormal} />
+                        <NumberStepper label="Plane constant k₁" value={planeConstant} step={0.1} min={-6} max={6} onChange={setPlaneConstant} />
+                        <input
+                          className="range-input w-full"
+                          type="range"
+                          min="-6"
+                          max="6"
+                          step="0.1"
+                          value={planeConstant}
+                          onChange={(event) => setPlaneConstant(Number(event.target.value))}
+                          aria-label="Plane 1 constant slider"
+                        />
+                      </section>
+
+                      <section className="space-y-5 border-t border-white/10 pt-6">
+                        <Toggle label="Show Plane 2" checked={secondPlaneEnabled} onChange={setSecondPlaneEnabled} />
+                        {secondPlaneEnabled && (
+                          <>
+                            <div>
+                              <h2 className="text-sm font-semibold text-zinc-100">Plane 2</h2>
+                              <MathJaxRenderer math={`\\(${formatPlaneEquation(secondPlaneNormal, secondPlaneConstant)}\\)`} className="mt-2 text-sm text-zinc-200" />
+                            </div>
+                            <NumericVectorInput label="Normal vector n₂" value={secondPlaneNormal} onChange={setSecondPlaneNormal} />
+                            <NumberStepper label="Plane constant k₂" value={secondPlaneConstant} step={0.1} min={-6} max={6} onChange={setSecondPlaneConstant} />
+                            <input
+                              className="range-input w-full"
+                              type="range"
+                              min="-6"
+                              max="6"
+                              step="0.1"
+                              value={secondPlaneConstant}
+                              onChange={(event) => setSecondPlaneConstant(Number(event.target.value))}
+                              aria-label="Plane 2 constant slider"
+                            />
+                          </>
+                        )}
+                      </section>
+                    </div>
+                  )}
+
+                  {activePanel === "analysis" && (
+                    <div className="space-y-7">
+                      <section>
+                        <div className="flex items-center justify-between gap-4">
+                          <h2 className="text-sm font-semibold text-zinc-100">Equations</h2>
+                          <button type="button" onClick={() => void copyEquations()} className="visualizer-toolbar-button">
+                            Copy equations
+                          </button>
+                        </div>
+                        <div className="mt-3 space-y-3 border border-white/10 bg-[#0b0b0b] p-4">
+                          <MathJaxRenderer math={`\\(\\vec r=(${linePoint.join(",")})+t(${lineDirection.join(",")})\\)`} className="text-sm text-zinc-100" />
+                          <MathJaxRenderer math={`\\(${formatPlaneEquation(planeNormal, planeConstant)}\\)`} className="text-sm text-sky-200" />
+                          {secondPlaneEnabled && (
+                            <MathJaxRenderer math={`\\(${formatPlaneEquation(secondPlaneNormal, secondPlaneConstant)}\\)`} className="text-sm text-zinc-100" />
+                          )}
+                        </div>
+                        {copyStatus && <p className="mt-2 text-right text-xs text-sky-300" role="status">{copyStatus}</p>}
+                      </section>
+
+                      <section className="border border-sky-400/20 bg-sky-400/[0.045] p-4">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-300">Line and Plane 1</p>
+                        <h2 className="mt-2 text-base font-semibold text-zinc-100">{lineRelationship.title}</h2>
+                        <p className="mt-1 text-xs leading-5 text-zinc-400">{lineRelationship.detail}</p>
+                        <MathJaxRenderer math={lineRelationship.math} className="mt-4 text-sm text-zinc-100" />
+                      </section>
+
+                      {planeRelationship && (
+                        <section className="border border-white/12 bg-[#0b0b0b] p-4">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400">Plane 1 and Plane 2</p>
+                          <h2 className="mt-2 text-base font-semibold text-zinc-100">{planeRelationship.title}</h2>
+                          <p className="mt-1 text-xs leading-5 text-zinc-400">{planeRelationship.detail}</p>
+                          <MathJaxRenderer math={planeRelationship.math} className="mt-4 text-sm text-zinc-100" />
+                        </section>
+                      )}
+
+                      <section className="flex items-center justify-between gap-3 border border-white/10 bg-[#0b0b0b] px-4 py-3 text-xs">
+                        <span className="text-zinc-400">Point at t = {formatNumber(parameter)}</span>
+                        <span className="font-mono font-semibold text-sky-200">({trackedPoint.map(formatNumber).join(", ")})</span>
+                      </section>
+                    </div>
+                  )}
+                </motion.div>
+              </motion.aside>
+            </>
           )}
-
-          <section className="border-t border-white/10 pt-7">
-            <div className="flex items-center justify-between gap-4">
-              <h3 className="text-base font-semibold text-zinc-100">Equations</h3>
-              <button type="button" onClick={() => void copyEquations()} className="secondary-action min-h-9 px-3 text-xs">Copy equations</button>
-            </div>
-            <div className="mt-4 space-y-3 border border-white/10 bg-[#0b0b0b] p-4">
-              <MathJaxRenderer math={`\\(\\vec r=(${linePoint.join(",")})+t(${lineDirection.join(",")})\\)`} className="text-sm text-zinc-100" />
-              <MathJaxRenderer math={`\\(${formatPlaneEquation(planeNormal, planeConstant)}\\)`} className="text-sm text-zinc-100" />
-              {secondPlaneEnabled && <MathJaxRenderer math={`\\(${formatPlaneEquation(secondPlaneNormal, secondPlaneConstant)}\\)`} className="text-sm text-zinc-100" />}
-            </div>
-            <div className="mt-3 flex items-center justify-between gap-4 border border-sky-400/20 bg-sky-400/[0.045] px-4 py-3 text-xs">
-              <span className="text-zinc-400">Point at t = {formatNumber(parameter)}</span>
-              <span className="font-mono font-semibold text-sky-200">({trackedPoint.map(formatNumber).join(", ")})</span>
-            </div>
-            {copyStatus && <p className="mt-2 text-right text-xs text-sky-300" role="status">{copyStatus}</p>}
-          </section>
-        </motion.div>
-      </div>
-
-      <div className={`grid gap-px border-t border-white/10 bg-white/10 ${secondPlaneEnabled ? "lg:grid-cols-2" : ""}`}>
-        <section className="bg-[#0d0d0d] p-6 sm:p-7">
-          <p className="micro-label text-sky-300">Line and Plane 1</p>
-          <h3 className="mt-3 text-xl font-semibold text-zinc-100">{lineRelationship.title}</h3>
-          <p className="mt-2 text-sm leading-6 text-zinc-400">{lineRelationship.detail}</p>
-          <MathJaxRenderer math={lineRelationship.math} className="mt-5 text-base text-zinc-100" />
-        </section>
-        {planeRelationship && (
-          <section className="bg-[#0d0d0d] p-6 sm:p-7">
-            <p className="micro-label text-sky-300">Plane 1 and Plane 2</p>
-            <h3 className="mt-3 text-xl font-semibold text-zinc-100">{planeRelationship.title}</h3>
-            <p className="mt-2 text-sm leading-6 text-zinc-400">{planeRelationship.detail}</p>
-            <MathJaxRenderer math={planeRelationship.math} className="mt-5 text-base text-zinc-100" />
-          </section>
-        )}
+        </AnimatePresence>
       </div>
     </div>
   );
