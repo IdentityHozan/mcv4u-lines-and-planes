@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 export function Footer() {
   const pathname = usePathname();
 
-  if (pathname === "/visualizer") return null;
+  if (pathname === "/visualizer" || pathname === "/calculator") return null;
 
   return (
     <footer className="border-t border-white/10 bg-[#090909] py-9">
