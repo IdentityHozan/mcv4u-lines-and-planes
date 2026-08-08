@@ -41,7 +41,7 @@ export default function HomePage() {
             </p>
             <div className="mt-9 flex flex-wrap gap-3">
               <Link href="/lessons/line-equations" className="primary-action">Start Lesson 1</Link>
-              <Link href="/visualizer" className="secondary-action">Open 3D Visualizer</Link>
+              <Link href="/visualizer" className="secondary-action">Open Visualizer</Link>
             </div>
           </div>
 

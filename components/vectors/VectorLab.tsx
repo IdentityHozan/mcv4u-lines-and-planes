@@ -7,12 +7,14 @@ import { NumberStepper } from "@/components/ui/NumberStepper";
 import {
   Interactive3DPlane,
   type CameraView,
+  type DistanceMode,
+  type PlaneDefinitionMode,
   type ScenePointSelection,
   type Vector3Value,
 } from "./Interactive3DPlane";
 
 type Mode = "line" | "plane" | "both";
-type ControlPanel = "scene" | "line" | "planes" | "motion" | "analysis";
+type ControlPanel = "scene" | "line" | "planes" | "distance" | "motion" | "analysis";
 type AnimationMode = "point" | "plane-shift" | "line-rotate" | "normal-rotate";
 
 type Preset = {
@@ -47,6 +49,7 @@ const controlPanels: Array<{ id: ControlPanel; label: string }> = [
   { id: "scene", label: "Scene" },
   { id: "line", label: "Line" },
   { id: "planes", label: "Planes" },
+  { id: "distance", label: "Distance" },
   { id: "motion", label: "Motion" },
   { id: "analysis", label: "Analysis" },
 ];
@@ -68,6 +71,9 @@ const defaults = {
   showNormalVectors: true,
   showObjectLabels: true,
   cameraView: "isometric" as CameraView,
+  externalPoint: [3, 2, 0] as Vector3Value,
+  distanceMode: "none" as DistanceMode,
+  planeDefinitionMode: "normal" as PlaneDefinitionMode,
 };
 
 const EPSILON = 1e-8;
@@ -86,6 +92,26 @@ function cross(first: Vector3Value, second: Vector3Value): Vector3Value {
 
 function magnitude(vector: Vector3Value) {
   return Math.sqrt(dot(vector, vector));
+}
+
+function add(first: Vector3Value, second: Vector3Value): Vector3Value {
+  return [first[0] + second[0], first[1] + second[1], first[2] + second[2]];
+}
+
+function subtract(first: Vector3Value, second: Vector3Value): Vector3Value {
+  return [first[0] - second[0], first[1] - second[1], first[2] - second[2]];
+}
+
+function scale(vector: Vector3Value, factor: number): Vector3Value {
+  return [vector[0] * factor, vector[1] * factor, vector[2] * factor];
+}
+
+function planeSpanningVectors(normal: Vector3Value) {
+  if (magnitude(normal) < EPSILON) return null;
+  const first: Vector3Value = Math.abs(normal[0]) + Math.abs(normal[1]) > EPSILON
+    ? [-normal[1], normal[0], 0]
+    : [1, 0, 0];
+  return { first, second: cross(normal, first) };
 }
 
 function rotateAroundY(vector: Vector3Value, angle: number): Vector3Value {
@@ -113,6 +139,23 @@ function formatPlaneEquation(normal: Vector3Value, constant: number) {
   });
   if (terms.length === 0) return `0=${formatNumber(constant)}`;
   return `${terms.map((term, index) => `${index === 0 && term.sign === "+" ? "" : term.sign}${term.body}`).join("")}=${formatNumber(constant)}`;
+}
+
+function coordinateDifference(variable: string, value: number) {
+  if (Math.abs(value) < EPSILON) return variable;
+  return value > 0 ? `${variable}-${formatNumber(value)}` : `${variable}+${formatNumber(Math.abs(value))}`;
+}
+
+function affineExpression(base: number, terms: Array<{ coefficient: number; parameter: string }>) {
+  let output = Math.abs(base) < EPSILON ? "" : formatNumber(base);
+  terms.forEach(({ coefficient, parameter }) => {
+    if (Math.abs(coefficient) < EPSILON) return;
+    const magnitudeValue = Math.abs(coefficient);
+    const body = `${Math.abs(magnitudeValue - 1) < EPSILON ? "" : formatNumber(magnitudeValue)}${parameter}`;
+    if (!output) output = coefficient < 0 ? `-${body}` : body;
+    else output += coefficient < 0 ? `-${body}` : `+${body}`;
+  });
+  return output || "0";
 }
 
 function NumericVectorInput({ label, value, onChange }: { label: string; value: Vector3Value; onChange: (value: Vector3Value) => void }) {
@@ -147,7 +190,7 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
   );
 }
 
-export function VectorLab() {
+export function VectorLab({ embedded = false }: { embedded?: boolean }) {
   const workspaceRef = useRef<HTMLDivElement>(null);
   const parameterTravelDirectionRef = useRef(1);
   const planeTravelDirectionRef = useRef(1);
@@ -166,6 +209,9 @@ export function VectorLab() {
   const [showNormalVectors, setShowNormalVectors] = useState(defaults.showNormalVectors);
   const [showObjectLabels, setShowObjectLabels] = useState(defaults.showObjectLabels);
   const [cameraView, setCameraView] = useState<CameraView>(defaults.cameraView);
+  const [externalPoint, setExternalPoint] = useState<Vector3Value>(defaults.externalPoint);
+  const [distanceMode, setDistanceMode] = useState<DistanceMode>(defaults.distanceMode);
+  const [planeDefinitionMode, setPlaneDefinitionMode] = useState<PlaneDefinitionMode>(defaults.planeDefinitionMode);
   const [animating, setAnimating] = useState(false);
   const [animationMode, setAnimationMode] = useState<AnimationMode>("point");
   const [animationSpeed, setAnimationSpeed] = useState(1);
@@ -268,6 +314,85 @@ export function VectorLab() {
       : { title: "The planes are parallel", detail: "There is no plane-plane intersection.", math: String.raw`\[\vec n_1\parallel\vec n_2\]` };
   }, [planeConstant, planeNormal, secondPlaneConstant, secondPlaneEnabled, secondPlaneNormal]);
 
+  const lineEquationForms = useMemo(() => {
+    if (magnitude(lineDirection) < EPSILON) return null;
+    const variables = ["x", "y", "z"];
+    const parametric = variables.map((variable, index) => `${variable}=${affineExpression(linePoint[index], [{ coefficient: lineDirection[index], parameter: "t" }])}`).join(",\\quad ");
+    const symmetricTerms = variables.flatMap((variable, index) => Math.abs(lineDirection[index]) < EPSILON
+      ? []
+      : [`\\frac{${coordinateDifference(variable, linePoint[index])}}{${formatNumber(lineDirection[index])}}`]);
+    const fixedCoordinates = variables.flatMap((variable, index) => Math.abs(lineDirection[index]) < EPSILON
+      ? [`${variable}=${formatNumber(linePoint[index])}`]
+      : []);
+    const symmetric = symmetricTerms.length >= 2
+      ? `${symmetricTerms.join("=")}${fixedCoordinates.length ? `,\\quad ${fixedCoordinates.join(",\\quad ")}` : ""}`
+      : fixedCoordinates.join(",\\quad ");
+    return {
+      vector: `\\[\\vec r=(${linePoint.map(formatNumber).join(",")})+t(${lineDirection.map(formatNumber).join(",")})\\]`,
+      parametric: `\\[${parametric}\\]`,
+      symmetric: `\\[${symmetric || "\\vec d=\\vec 0"}\\]`,
+      cartesian: `\\[(\\vec r-(${linePoint.map(formatNumber).join(",")}))\\times(${lineDirection.map(formatNumber).join(",")})=\\vec 0\\]`,
+    };
+  }, [lineDirection, linePoint]);
+
+  const planeEquationForms = useMemo(() => {
+    const normalSquared = dot(planeNormal, planeNormal);
+    const spans = planeSpanningVectors(planeNormal);
+    if (normalSquared < EPSILON || !spans) return null;
+    const anchor = scale(planeNormal, planeConstant / normalSquared);
+    const variables = ["x", "y", "z"];
+    const parametric = variables.map((variable, index) => `${variable}=${affineExpression(anchor[index], [
+      { coefficient: spans.first[index], parameter: "s" },
+      { coefficient: spans.second[index], parameter: "t" },
+    ])}`).join(",\\quad ");
+    return {
+      anchor,
+      firstSpan: spans.first,
+      secondSpan: spans.second,
+      vector: `\\[\\vec r=(${anchor.map(formatNumber).join(",")})+s(${spans.first.map(formatNumber).join(",")})+t(${spans.second.map(formatNumber).join(",")})\\]`,
+      parametric: `\\[${parametric}\\]`,
+      scalar: `\\[${formatPlaneEquation(planeNormal, planeConstant)}\\]`,
+    };
+  }, [planeConstant, planeNormal]);
+
+  const pointLineDistance = useMemo(() => {
+    const directionSquared = dot(lineDirection, lineDirection);
+    if (directionSquared < EPSILON) return null;
+    const displacement = subtract(externalPoint, linePoint);
+    const parameterValue = dot(displacement, lineDirection) / directionSquared;
+    const foot = add(linePoint, scale(lineDirection, parameterValue));
+    return {
+      distance: magnitude(cross(displacement, lineDirection)) / Math.sqrt(directionSquared),
+      foot,
+      parameter: parameterValue,
+    };
+  }, [externalPoint, lineDirection, linePoint]);
+
+  const pointPlaneDistance = useMemo(() => {
+    const normalSquared = dot(planeNormal, planeNormal);
+    if (normalSquared < EPSILON) return null;
+    const signedNumerator = dot(planeNormal, externalPoint) - planeConstant;
+    return {
+      distance: Math.abs(signedNumerator) / Math.sqrt(normalSquared),
+      foot: subtract(externalPoint, scale(planeNormal, signedNumerator / normalSquared)),
+    };
+  }, [externalPoint, planeConstant, planeNormal]);
+
+  const linePlaneAngle = useMemo(() => {
+    const denominator = magnitude(lineDirection) * magnitude(planeNormal);
+    if (denominator < EPSILON) return null;
+    const sine = Math.min(1, Math.max(0, Math.abs(dot(lineDirection, planeNormal)) / denominator));
+    return Math.asin(sine) * 180 / Math.PI;
+  }, [lineDirection, planeNormal]);
+
+  const planePlaneAngle = useMemo(() => {
+    if (!secondPlaneEnabled) return null;
+    const denominator = magnitude(planeNormal) * magnitude(secondPlaneNormal);
+    if (denominator < EPSILON) return null;
+    const cosine = Math.min(1, Math.max(0, Math.abs(dot(planeNormal, secondPlaneNormal)) / denominator));
+    return Math.acos(cosine) * 180 / Math.PI;
+  }, [planeNormal, secondPlaneEnabled, secondPlaneNormal]);
+
   const trackedPoint: Vector3Value = [
     linePoint[0] + parameter * lineDirection[0],
     linePoint[1] + parameter * lineDirection[1],
@@ -306,7 +431,16 @@ export function VectorLab() {
     setShowNormalVectors(true);
     setShowObjectLabels(true);
     setCameraView("isometric");
+    setExternalPoint(defaults.externalPoint);
+    setDistanceMode(defaults.distanceMode);
+    setPlaneDefinitionMode(defaults.planeDefinitionMode);
     setAnimationSpeed(1);
+  };
+
+  const chooseDistanceMode = (nextMode: DistanceMode) => {
+    setDistanceMode(nextMode);
+    if (nextMode === "point-line") setMode((current) => current === "plane" ? "both" : current);
+    if (nextMode === "point-plane") setMode((current) => current === "line" ? "both" : current);
   };
 
   const resetAnimationValue = () => {
@@ -359,11 +493,11 @@ export function VectorLab() {
   return (
     <div
       ref={workspaceRef}
-      className="visualizer-workspace flex h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-[#0a0a0a] sm:h-[calc(100dvh-4.5rem)]"
+      className={`visualizer-workspace flex flex-col overflow-hidden bg-[#0a0a0a] ${embedded ? "h-full" : "h-[calc(100dvh-4rem)] sm:h-[calc(100dvh-4.5rem)]"}`}
     >
       <header className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-[#0d0d0d] px-3 py-2 sm:px-5">
         <div className="min-w-0">
-          <h1 className="truncate text-sm font-semibold text-zinc-100 sm:text-base">3D Visualizer</h1>
+          <h1 className="truncate text-sm font-semibold text-zinc-100 sm:text-base">3D Lines and Planes</h1>
           <p className="hidden truncate text-[11px] text-zinc-400 sm:block" role="status">
             {copyStatus || lineRelationship.title}
           </p>
@@ -405,12 +539,15 @@ export function VectorLab() {
             showNormalVectors={showNormalVectors}
             showObjectLabels={showObjectLabels}
             cameraView={cameraView}
+            distanceMode={distanceMode}
+            externalPoint={externalPoint}
+            planeDefinitionMode={planeDefinitionMode}
             selectedPoint={selectedPoint}
             onSelectPoint={setSelectedPoint}
           />
 
           <div className="pointer-events-none absolute left-3 top-3 hidden border border-white/15 bg-black/85 px-3 py-2 text-[11px] text-zinc-300 backdrop-blur sm:block">
-            Click a point or plane to inspect it. Drag to rotate. Scroll or pinch to zoom.
+            Select points and planes. Drag to rotate. Scroll or pinch to zoom.
           </div>
 
           {selectedPoint && (
@@ -477,7 +614,7 @@ export function VectorLab() {
                       Close panel
                     </button>
                   </div>
-                  <div className="grid grid-cols-5" role="tablist" aria-label="Visualizer control sections">
+                  <div className="grid grid-cols-6" role="tablist" aria-label="Visualizer control sections">
                     {controlPanels.map((panel) => (
                       <button
                         key={panel.id}
@@ -596,15 +733,19 @@ export function VectorLab() {
 
                   {activePanel === "line" && (
                     <div className="space-y-7">
-                      <section>
-                        <h2 className="text-sm font-semibold text-zinc-100">Line equation</h2>
-                        <MathJaxRenderer
-                          math={`\\(\\vec r=(${linePoint.join(",")})+t(${lineDirection.join(",")})\\)`}
-                          className="mt-3 border border-white/10 bg-[#0b0b0b] p-3 text-sm text-zinc-100"
-                        />
-                      </section>
                       <NumericVectorInput label="Anchor point r₀" value={linePoint} onChange={setLinePoint} />
                       <NumericVectorInput label="Direction vector d" value={lineDirection} onChange={setLineDirection} />
+                      <section className="border-t border-white/10 pt-6">
+                        <h2 className="text-sm font-semibold text-zinc-100">Line equation forms</h2>
+                        {lineEquationForms ? (
+                          <div className="mt-3 space-y-3 border border-white/10 bg-[#0b0b0b] p-4">
+                            <div><p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">Vector</p><MathJaxRenderer math={lineEquationForms.vector} className="mt-1 text-xs text-zinc-100" /></div>
+                            <div><p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">Parametric</p><MathJaxRenderer math={lineEquationForms.parametric} className="mt-1 text-xs text-sky-200" /></div>
+                            <div><p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">Symmetric</p><MathJaxRenderer math={lineEquationForms.symmetric} className="mt-1 text-xs text-zinc-100" /></div>
+                            <div><p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">Cartesian vector constraint</p><MathJaxRenderer math={lineEquationForms.cartesian} className="mt-1 text-xs text-zinc-100" /></div>
+                          </div>
+                        ) : <p className="mt-3 border border-white/10 bg-[#0b0b0b] p-4 text-xs text-zinc-400">Enter a non-zero direction vector.</p>}
+                      </section>
                       <section className="border-t border-white/10 pt-6">
                         <h2 className="text-sm font-semibold text-zinc-100">Tracked point</h2>
                         <div className="mt-4">
@@ -662,6 +803,31 @@ export function VectorLab() {
                           onChange={(event) => setPlaneConstant(Number(event.target.value))}
                           aria-label="Plane 1 constant slider"
                         />
+                        <div className="border border-white/10 bg-[#0b0b0b] p-4">
+                          <h3 className="text-xs font-semibold text-zinc-200">Plane equation forms</h3>
+                          {planeEquationForms ? (
+                            <div className="mt-3 space-y-3">
+                              <div><p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">Vector</p><MathJaxRenderer math={planeEquationForms.vector} className="mt-1 text-xs text-zinc-100" /></div>
+                              <div><p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">Parametric</p><MathJaxRenderer math={planeEquationForms.parametric} className="mt-1 text-xs text-sky-200" /></div>
+                              <div><p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-500">Cartesian</p><MathJaxRenderer math={planeEquationForms.scalar} className="mt-1 text-xs text-zinc-100" /></div>
+                            </div>
+                          ) : <p className="mt-3 text-xs text-zinc-400">Enter a non-zero normal vector.</p>}
+                        </div>
+                        <div>
+                          <h3 className="text-xs font-semibold text-zinc-200">Plane construction</h3>
+                          <div className="mt-3 grid grid-cols-2 gap-2" role="group" aria-label="Plane construction method">
+                            {([
+                              { id: "normal" as PlaneDefinitionMode, label: "Normal and point" },
+                              { id: "three-points" as PlaneDefinitionMode, label: "Three points" },
+                              { id: "two-lines" as PlaneDefinitionMode, label: "Two intersecting lines" },
+                              { id: "point-line" as PlaneDefinitionMode, label: "Point and line" },
+                            ]).map((item) => (
+                              <button key={item.id} type="button" onClick={() => { setPlaneDefinitionMode(item.id); setMode((current) => current === "line" ? "both" : current); setShowObjectLabels(true); }} aria-pressed={planeDefinitionMode === item.id} className={`min-h-11 border px-3 py-2 text-left text-[11px] font-semibold ${planeDefinitionMode === item.id ? "border-sky-400/45 bg-sky-400/[0.09] text-sky-200" : "border-white/10 bg-[#090909] text-zinc-400 hover:border-white/25"}`}>
+                                {item.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       </section>
 
                       <section className="space-y-5 border-t border-white/10 pt-6">
@@ -686,6 +852,63 @@ export function VectorLab() {
                             />
                           </>
                         )}
+                      </section>
+                    </div>
+                  )}
+
+                  {activePanel === "distance" && (
+                    <div className="space-y-7">
+                      <section>
+                        <h2 className="text-sm font-semibold text-zinc-100">Distance measurement</h2>
+                        <div className="mt-3 grid grid-cols-3 gap-2" role="group" aria-label="Distance measurement">
+                          {([
+                            { id: "none" as DistanceMode, label: "Hide" },
+                            { id: "point-line" as DistanceMode, label: "Point to line" },
+                            { id: "point-plane" as DistanceMode, label: "Point to plane" },
+                          ]).map((item) => (
+                            <button key={item.id} type="button" onClick={() => chooseDistanceMode(item.id)} aria-pressed={distanceMode === item.id} className={`min-h-11 border px-2 text-[11px] font-semibold ${distanceMode === item.id ? "border-sky-400/45 bg-sky-400/[0.09] text-sky-200" : "border-white/10 bg-[#0b0b0b] text-zinc-400 hover:border-white/25"}`}>
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                      </section>
+
+                      <NumericVectorInput label="External point P" value={externalPoint} onChange={setExternalPoint} />
+
+                      {distanceMode === "point-line" && (
+                        <section className="border border-sky-400/20 bg-sky-400/[0.045] p-4">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-300">Point to line</p>
+                          {pointLineDistance ? (
+                            <>
+                              <p className="mt-2 font-mono text-lg font-semibold text-zinc-100">{formatNumber(pointLineDistance.distance)} units</p>
+                              <MathJaxRenderer math={`\\[d=\\frac{\\|(${externalPoint.map(formatNumber).join(",")}-(${linePoint.map(formatNumber).join(",")}))\\times(${lineDirection.map(formatNumber).join(",")})\\|}{\\|(${lineDirection.map(formatNumber).join(",")})\\|}=${formatNumber(pointLineDistance.distance)}\\]`} className="mt-3 text-xs text-sky-200" />
+                              <p className="mt-3 text-[11px] text-zinc-400">Closest point</p>
+                              <p className="mt-1 font-mono text-xs text-zinc-100">({pointLineDistance.foot.map(formatNumber).join(", ")})</p>
+                            </>
+                          ) : <p className="mt-3 text-xs text-zinc-400">Enter a non-zero line direction.</p>}
+                        </section>
+                      )}
+
+                      {distanceMode === "point-plane" && (
+                        <section className="border border-sky-400/20 bg-sky-400/[0.045] p-4">
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-300">Point to plane</p>
+                          {pointPlaneDistance ? (
+                            <>
+                              <p className="mt-2 font-mono text-lg font-semibold text-zinc-100">{formatNumber(pointPlaneDistance.distance)} units</p>
+                              <MathJaxRenderer math={`\\[d=\\frac{|\\vec n\\cdot P-k|}{\\|\\vec n\\|}=${formatNumber(pointPlaneDistance.distance)}\\]`} className="mt-3 text-sm text-sky-200" />
+                              <p className="mt-3 text-[11px] text-zinc-400">Closest point</p>
+                              <p className="mt-1 font-mono text-xs text-zinc-100">({pointPlaneDistance.foot.map(formatNumber).join(", ")})</p>
+                            </>
+                          ) : <p className="mt-3 text-xs text-zinc-400">Enter a non-zero plane normal.</p>}
+                        </section>
+                      )}
+
+                      <section className="border-t border-white/10 pt-6">
+                        <h2 className="text-sm font-semibold text-zinc-100">Angles</h2>
+                        <div className="mt-3 space-y-2 border border-white/10 bg-[#0b0b0b] p-4 text-xs">
+                          <div className="flex items-center justify-between gap-4"><span className="text-zinc-400">Line and Plane 1</span><span className="font-mono font-semibold text-sky-200">{linePlaneAngle === null ? "Not defined" : `${formatNumber(linePlaneAngle)}°`}</span></div>
+                          {secondPlaneEnabled && <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-2"><span className="text-zinc-400">Plane 1 and Plane 2</span><span className="font-mono font-semibold text-sky-200">{planePlaneAngle === null ? "Not defined" : `${formatNumber(planePlaneAngle)}°`}</span></div>}
+                        </div>
                       </section>
                     </div>
                   )}

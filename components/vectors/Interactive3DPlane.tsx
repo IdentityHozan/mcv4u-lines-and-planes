@@ -7,6 +7,8 @@ import * as THREE from "three";
 
 export type Vector3Value = [number, number, number];
 export type CameraView = "isometric" | "front" | "side" | "top";
+export type DistanceMode = "none" | "point-line" | "point-plane";
+export type PlaneDefinitionMode = "normal" | "three-points" | "two-lines" | "point-line";
 export type ScenePointSelection = {
   label: string;
   position: Vector3Value;
@@ -28,6 +30,9 @@ type Interactive3DPlaneProps = {
   showNormalVectors: boolean;
   showObjectLabels: boolean;
   cameraView: CameraView;
+  distanceMode: DistanceMode;
+  externalPoint: Vector3Value;
+  planeDefinitionMode: PlaneDefinitionMode;
   selectedPoint: ScenePointSelection | null;
   onSelectPoint: (selection: ScenePointSelection) => void;
 };
@@ -200,6 +205,9 @@ function Scene(props: Interactive3DPlaneProps) {
     showAxes,
     showNormalVectors,
     showObjectLabels,
+    distanceMode,
+    externalPoint,
+    planeDefinitionMode,
     selectedPoint,
     onSelectPoint,
   } = props;
@@ -244,8 +252,49 @@ function Scene(props: Interactive3DPlaneProps) {
     return [point.clone().addScaledVector(unitDirection, -gridSize), point.clone().addScaledVector(unitDirection, gridSize)] as const;
   }, [gridSize, planeConstant, primaryPlane.safeNormal, secondPlaneConstant, secondPlaneEnabled, secondaryPlane.safeNormal]);
 
+  const distanceMeasurement = useMemo(() => {
+    const point = new THREE.Vector3(...externalPoint);
+
+    if (distanceMode === "point-line") {
+      const direction = new THREE.Vector3(...lineDirection);
+      if (direction.lengthSq() < EPSILON) return null;
+      const anchor = new THREE.Vector3(...linePoint);
+      const parameterValue = point.clone().sub(anchor).dot(direction) / direction.lengthSq();
+      const foot = anchor.clone().addScaledVector(direction, parameterValue);
+      return { foot, distance: point.distanceTo(foot), label: "Closest point on line" };
+    }
+
+    if (distanceMode === "point-plane") {
+      const normal = new THREE.Vector3(...planeNormal);
+      if (normal.lengthSq() < EPSILON) return null;
+      const signedFactor = (normal.dot(point) - planeConstant) / normal.lengthSq();
+      const foot = point.clone().addScaledVector(normal, -signedFactor);
+      return { foot, distance: point.distanceTo(foot), label: "Closest point on plane" };
+    }
+
+    return null;
+  }, [distanceMode, externalPoint, lineDirection, linePoint, planeConstant, planeNormal]);
+
+  const planeDefinition = useMemo(() => {
+    const normal = new THREE.Vector3(...primaryPlane.safeNormal).normalize();
+    const reference = Math.abs(normal.y) < 0.85 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0);
+    const firstDirection = normal.clone().cross(reference).normalize();
+    const secondDirection = normal.clone().cross(firstDirection).normalize();
+    const anchor = primaryPlane.point.clone();
+    const pointScale = Math.max(2, gridSize * 0.18);
+    const lineScale = Math.max(4, gridSize * 0.34);
+    return {
+      anchor,
+      secondPoint: anchor.clone().addScaledVector(firstDirection, pointScale),
+      thirdPoint: anchor.clone().addScaledVector(secondDirection, pointScale),
+      firstLine: [anchor.clone().addScaledVector(firstDirection, -lineScale), anchor.clone().addScaledVector(firstDirection, lineScale)] as const,
+      secondLine: [anchor.clone().addScaledVector(secondDirection, -lineScale), anchor.clone().addScaledVector(secondDirection, lineScale)] as const,
+    };
+  }, [gridSize, primaryPlane.point, primaryPlane.safeNormal]);
+
   const planeVisible = mode === "plane" || mode === "both";
   const lineVisible = mode === "line" || mode === "both";
+  const validPrimaryPlane = dot(planeNormal, planeNormal) >= EPSILON;
 
   const selectPlanePoint = (label: string) => (event: ThreeEvent<MouseEvent>) => {
     event.stopPropagation();
@@ -344,6 +393,65 @@ function Scene(props: Interactive3DPlaneProps) {
       )}
       {planeVisible && secondPlaneEnabled && planeIntersectionLine && (
         <Line points={planeIntersectionLine} color="#f5f5f5" lineWidth={3} />
+      )}
+
+      {distanceMeasurement && (
+        <>
+          <Line points={[externalPoint, distanceMeasurement.foot]} color="#f5f5f5" lineWidth={2.2} dashed dashScale={8} dashSize={0.35} gapSize={0.18} />
+          <SelectablePoint position={externalPoint} label="External point" color="#f5f5f5" size={0.22} onSelect={onSelectPoint} />
+          <SelectablePoint position={distanceMeasurement.foot.toArray() as Vector3Value} label={distanceMeasurement.label} color="#38bdf8" size={0.19} onSelect={onSelectPoint} />
+          {showObjectLabels && (
+            <>
+              <ObjectLabel position={[externalPoint[0], externalPoint[1] + 0.55, externalPoint[2]]}>External point</ObjectLabel>
+              <ObjectLabel position={distanceMeasurement.foot.toArray() as Vector3Value} accent>
+                Distance {Number(distanceMeasurement.distance.toFixed(3))}
+              </ObjectLabel>
+            </>
+          )}
+        </>
+      )}
+
+      {planeVisible && validPrimaryPlane && planeDefinitionMode === "three-points" && (
+        <>
+          <SelectablePoint position={planeDefinition.anchor.toArray() as Vector3Value} label="Plane point A" color="#f5f5f5" size={0.18} onSelect={onSelectPoint} />
+          <SelectablePoint position={planeDefinition.secondPoint.toArray() as Vector3Value} label="Plane point B" color="#38bdf8" size={0.18} onSelect={onSelectPoint} />
+          <SelectablePoint position={planeDefinition.thirdPoint.toArray() as Vector3Value} label="Plane point C" color="#7dd3fc" size={0.18} onSelect={onSelectPoint} />
+          {showObjectLabels && (
+            <>
+              <ObjectLabel position={planeDefinition.anchor.toArray() as Vector3Value}>A</ObjectLabel>
+              <ObjectLabel position={planeDefinition.secondPoint.toArray() as Vector3Value} accent>B</ObjectLabel>
+              <ObjectLabel position={planeDefinition.thirdPoint.toArray() as Vector3Value} accent>C</ObjectLabel>
+            </>
+          )}
+        </>
+      )}
+
+      {planeVisible && validPrimaryPlane && planeDefinitionMode === "two-lines" && (
+        <>
+          <Line points={planeDefinition.firstLine} color="#f5f5f5" lineWidth={2.4} />
+          <Line points={planeDefinition.secondLine} color="#7dd3fc" lineWidth={2.4} />
+          <SelectablePoint position={planeDefinition.anchor.toArray() as Vector3Value} label="Line intersection" color="#38bdf8" size={0.2} onSelect={onSelectPoint} />
+          {showObjectLabels && (
+            <>
+              <ObjectLabel position={planeDefinition.firstLine[1].toArray() as Vector3Value}>Line 1</ObjectLabel>
+              <ObjectLabel position={planeDefinition.secondLine[1].toArray() as Vector3Value} accent>Line 2</ObjectLabel>
+            </>
+          )}
+        </>
+      )}
+
+      {planeVisible && validPrimaryPlane && planeDefinitionMode === "point-line" && (
+        <>
+          <Line points={planeDefinition.firstLine} color="#f5f5f5" lineWidth={2.4} />
+          <SelectablePoint position={planeDefinition.anchor.toArray() as Vector3Value} label="Point on defining line" color="#f5f5f5" size={0.17} onSelect={onSelectPoint} />
+          <SelectablePoint position={planeDefinition.thirdPoint.toArray() as Vector3Value} label="Point outside defining line" color="#38bdf8" size={0.2} onSelect={onSelectPoint} />
+          {showObjectLabels && (
+            <>
+              <ObjectLabel position={planeDefinition.firstLine[1].toArray() as Vector3Value}>Defining line</ObjectLabel>
+              <ObjectLabel position={planeDefinition.thirdPoint.toArray() as Vector3Value} accent>Point P</ObjectLabel>
+            </>
+          )}
+        </>
       )}
 
       {planeVisible && showObjectLabels && (

@@ -279,7 +279,13 @@ function OperationButton({ id, label, activeId, onSelect }: { id: OperationId; l
   );
 }
 
-export function VectorWorkbench() {
+type VectorWorkbenchProps = {
+  embedded?: boolean;
+  vectorOnly?: boolean;
+  title?: string;
+};
+
+export function VectorWorkbench({ embedded = false, vectorOnly = false, title = "Vector Workbench" }: VectorWorkbenchProps = {}) {
   const workspaceRef = useRef<HTMLDivElement>(null);
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("vectors");
   const [dimension, setDimension] = useState<VectorDimension>(2);
@@ -587,16 +593,16 @@ export function VectorWorkbench() {
   };
 
   return (
-    <div ref={workspaceRef} className="visualizer-workspace flex h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-[#0a0a0a] sm:h-[calc(100dvh-4.5rem)]">
+    <div ref={workspaceRef} className={`visualizer-workspace flex flex-col overflow-hidden bg-[#0a0a0a] ${embedded ? "h-full" : "h-[calc(100dvh-4rem)] sm:h-[calc(100dvh-4.5rem)]"}`}>
       <header className="flex shrink-0 items-center justify-between gap-3 border-b border-white/10 bg-[#0d0d0d] px-3 py-2 sm:px-5">
         <div className="min-w-0">
-          <h1 className="truncate text-sm font-semibold text-zinc-100 sm:text-base">Vector Workbench</h1>
+          <h1 className="truncate text-sm font-semibold text-zinc-100 sm:text-base">{title}</h1>
           <p className="hidden truncate text-[11px] text-zinc-400 sm:block" role="status">{copyStatus || result.title}</p>
         </div>
-        <div className="hidden min-w-0 items-center gap-1 border border-white/10 bg-[#090909] p-1 md:flex" role="group" aria-label="Calculator section">
+        {!vectorOnly && <div className="hidden min-w-0 items-center gap-1 border border-white/10 bg-[#090909] p-1 md:flex" role="group" aria-label="Calculator section">
           <button type="button" onClick={() => setWorkspaceMode("vectors")} aria-pressed={workspaceMode === "vectors"} className={`min-h-8 px-3 text-[11px] font-semibold ${workspaceMode === "vectors" ? "bg-sky-400/12 text-sky-200" : "text-zinc-400 hover:text-zinc-100"}`}>Vector operations</button>
           <button type="button" onClick={() => setWorkspaceMode("geometry")} aria-pressed={workspaceMode === "geometry"} className={`min-h-8 px-3 text-[11px] font-semibold ${workspaceMode === "geometry" ? "bg-sky-400/12 text-sky-200" : "text-zinc-400 hover:text-zinc-100"}`}>Lines and planes</button>
-        </div>
+        </div>}
         <div className="flex shrink-0 items-center gap-2">
           {workspaceMode === "vectors" && <button type="button" onClick={reset} className="visualizer-toolbar-button">Reset</button>}
           <button type="button" onClick={() => void toggleFullscreen()} className="visualizer-toolbar-button">{isFullscreen ? "Exit full screen" : "Full screen"}</button>
@@ -608,12 +614,12 @@ export function VectorWorkbench() {
         </div>
       </header>
 
-      <div className="grid shrink-0 grid-cols-2 border-b border-white/10 bg-[#0b0b0b] md:hidden" role="group" aria-label="Calculator section">
+      {!vectorOnly && <div className="grid shrink-0 grid-cols-2 border-b border-white/10 bg-[#0b0b0b] md:hidden" role="group" aria-label="Calculator section">
         <button type="button" onClick={() => setWorkspaceMode("vectors")} aria-pressed={workspaceMode === "vectors"} className={`min-h-10 text-xs font-semibold ${workspaceMode === "vectors" ? "bg-sky-400/[0.09] text-sky-200" : "text-zinc-400"}`}>Vector operations</button>
         <button type="button" onClick={() => setWorkspaceMode("geometry")} aria-pressed={workspaceMode === "geometry"} className={`min-h-10 border-l border-white/10 text-xs font-semibold ${workspaceMode === "geometry" ? "bg-sky-400/[0.09] text-sky-200" : "text-zinc-400"}`}>Lines and planes</button>
-      </div>
+      </div>}
 
-      {workspaceMode === "geometry" ? (
+      {!vectorOnly && workspaceMode === "geometry" ? (
         <div className="visualizer-control-scroll min-h-0 flex-1 overflow-y-auto bg-[#0a0a0a] p-3 sm:p-6">
           <div className="mx-auto max-w-6xl"><VectorCalculator /></div>
         </div>
