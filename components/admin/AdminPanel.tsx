@@ -196,7 +196,7 @@ export function AdminPanel() {
     return (
       <form onSubmit={login} className="max-w-lg border border-white/10 bg-[#111] p-6 sm:p-8">
         <h2 className="text-2xl font-semibold">Admin sign-in</h2>
-        <p className="mt-3 text-sm leading-7 text-zinc-400">Use the password configured by the site owner. The session lasts for 24 hours.</p>
+        <p className="mt-3 text-sm leading-7 text-zinc-400">Used to configure and manage the lesson content.</p>
         <label className="mt-6 block">
           <span className="field-label">Admin password</span>
           <input
