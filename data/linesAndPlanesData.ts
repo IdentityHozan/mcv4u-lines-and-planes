@@ -98,7 +98,6 @@ export type FormulaGroup = {
 
 export const courseMeta = {
   courseCode: "MCV4U",
-  topicCode: "H",
   title: "Lines and Planes",
   eyebrow: "Grade 12 Calculus & Vectors",
   summary:
