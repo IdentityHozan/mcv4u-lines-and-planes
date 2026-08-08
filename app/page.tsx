@@ -34,7 +34,7 @@ export default function HomePage() {
       <section className="industrial-grid border-b border-white/10">
         <div className="section-shell grid gap-12 py-16 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)] lg:items-center lg:py-24">
           <div>
-            <p className="micro-label text-sky-300">Grade 12 Calculus and Vectors · Topic H</p>
+            <p className="micro-label text-sky-300">MCV4U · Grade 12 Calculus and Vectors</p>
             <h1 className="page-title mt-6 text-zinc-100">Lines and Planes</h1>
             <p className="page-lead mt-7">
               Learn how to represent, visualize, and solve lines and planes in R² and R³. Follow the lessons in order or open a tool when you need focused practice.
@@ -47,14 +47,14 @@ export default function HomePage() {
 
           <aside className="border border-white/12 bg-[#101010]/95 p-6 sm:p-8" aria-labelledby="study-order-title">
             <p className="micro-label text-sky-300">Recommended study order</p>
-            <h2 id="study-order-title" className="mt-3 text-2xl font-semibold tracking-tight">A clear route through Topic H</h2>
+            <h2 id="study-order-title" className="mt-3 text-2xl font-semibold tracking-tight">Recommended learning order</h2>
             <ol className="mt-6 divide-y divide-white/10 border-y border-white/10">
               {studyPath.map((step, index) => (
                 <li key={step.title} className="grid grid-cols-[32px_1fr] gap-3 py-4">
                   <span className="font-mono text-xs text-sky-300">{String(index + 1).padStart(2, "0")}</span>
                   <div>
                     <p className="text-sm font-semibold text-zinc-200">{step.title}</p>
-                    <p className="mt-1 text-xs leading-5 text-zinc-500">{step.description}</p>
+                    <p className="mt-1 text-xs leading-5 text-zinc-400">{step.description}</p>
                     <Link href={step.href} className="mt-2 inline-block text-xs font-semibold text-sky-300 hover:text-sky-200">
                       {step.linkLabel}
                     </Link>
@@ -97,7 +97,7 @@ export default function HomePage() {
               <Link key={lesson.id} href={`/lessons/${lesson.id}`} className="border border-white/10 bg-[#111] p-5 transition hover:border-sky-400/35 hover:bg-sky-400/[0.035]">
                 <p className="micro-label text-sky-300">{lesson.index}</p>
                 <h3 className="mt-4 text-base font-semibold text-zinc-200">{lesson.title}</h3>
-                <p className="mt-2 text-xs leading-5 text-zinc-500">{lesson.kicker}</p>
+                <p className="mt-2 text-xs leading-5 text-zinc-400">{lesson.kicker}</p>
               </Link>
             ))}
           </div>

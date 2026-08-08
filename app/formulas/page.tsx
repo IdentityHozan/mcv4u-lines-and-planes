@@ -4,13 +4,13 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { MathJaxRenderer } from "@/components/ui/MathJaxRenderer";
 import { formulaGroups } from "@/data/linesAndPlanesData";
 
-export const metadata = { title: "Formula Sheet | MCV4U Topic H" };
+export const metadata = { title: "Formula Sheet | MCV4U Lines and Planes" };
 
 export default function FormulaSheetPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Topic H reference"
+        eyebrow="Lines and Planes reference"
         title="Formula sheet"
         description="A compact reference for line and plane equations, intersections, and distance formulas. Download a standalone MathJax version for printing or offline review."
         actions={<><DownloadFormulaSheetButton /><Link href="/lessons" className="secondary-action">Return to lessons</Link></>}
@@ -25,7 +25,7 @@ export default function FormulaSheetPage() {
                   <div key={formula.label} className="grid gap-4 py-5 lg:grid-cols-[180px_minmax(0,1fr)_280px] lg:items-center">
                     <p className="text-sm font-semibold text-zinc-300">{formula.label}</p>
                     <MathJaxRenderer math={formula.math} className="text-base text-zinc-100" />
-                    <p className="text-sm leading-6 text-zinc-500">{formula.note}</p>
+                    <p className="text-sm leading-6 text-zinc-400">{formula.note}</p>
                   </div>
                 ))}
               </div>

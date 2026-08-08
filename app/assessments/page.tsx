@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AssessmentHub } from "@/components/assessments/AssessmentHub";
 import { PageHeader } from "@/components/layout/PageHeader";
 
-export const metadata = { title: "Quizzes | MCV4U Topic H" };
+export const metadata = { title: "Quizzes | MCV4U Lines and Planes" };
 
 export default function AssessmentsPage() {
   return (

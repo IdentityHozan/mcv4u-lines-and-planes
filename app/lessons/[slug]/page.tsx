@@ -32,9 +32,9 @@ function getYouTubeId(url: string | undefined) {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const coreLesson = conceptModules.find((lesson) => lesson.id === slug);
-  if (coreLesson) return { title: `${coreLesson.title} | MCV4U Topic H`, description: coreLesson.summary };
+  if (coreLesson) return { title: `${coreLesson.title} | MCV4U Lines and Planes`, description: coreLesson.summary };
   const lesson = await getManagedLesson(slug).catch(() => null);
-  return lesson ? { title: `${lesson.title} | MCV4U Topic H`, description: lesson.summary } : {};
+  return lesson ? { title: `${lesson.title} | MCV4U Lines and Planes`, description: lesson.summary } : {};
 }
 
 export default async function LessonPage({ params }: { params: Promise<{ slug: string }> }) {

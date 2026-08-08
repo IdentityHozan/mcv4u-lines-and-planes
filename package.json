@@ -1,5 +1,5 @@
 {
-  "name": "mcv4u-topic-h-lines-and-planes",
+  "name": "mcv4u-lines-and-planes",
   "version": "1.0.0",
   "private": true,
   "engines": {
@@ -32,9 +32,5 @@
     "eslint-config-next": "16.2.6",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3"
-  },
-  "allowScripts": {
-    "sharp@0.34.5": true,
-    "unrs-resolver@1.12.2": true
   }
 }

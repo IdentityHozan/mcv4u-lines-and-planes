@@ -1,7 +1,7 @@
 import { AdminPanel } from "@/components/admin/AdminPanel";
 import { PageHeader } from "@/components/layout/PageHeader";
 
-export const metadata = { title: "Lesson Admin | MCV4U Topic H" };
+export const metadata = { title: "Lesson Admin | MCV4U Lines and Planes" };
 
 export default function AdminPage() {
   return (

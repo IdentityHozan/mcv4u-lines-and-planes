@@ -4,7 +4,7 @@ import { SiteHeader } from "@/components/layout/SiteHeader";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "MCV4U Topic H: Lines and Planes",
+  title: "MCV4U | Lines and Planes",
   description:
     "An interactive Grade 12 Calculus and Vectors learning portal for lines, planes, intersections, and distance in three-space.",
   other: {

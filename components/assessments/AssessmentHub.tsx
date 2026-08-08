@@ -62,7 +62,7 @@ export function AssessmentHub({ variant }: AssessmentHubProps) {
           <div className="grid lg:grid-cols-[1fr_360px]">
             <div className="p-7 sm:p-10">
               <p className="micro-label text-sky-300">Comprehensive final assessment</p>
-              <h2 className="mt-5 max-w-3xl text-3xl font-semibold tracking-tight sm:text-5xl">Complete Topic H final exam</h2>
+              <h2 className="mt-5 max-w-3xl text-3xl font-semibold tracking-tight sm:text-5xl">Complete the Lines and Planes final exam</h2>
               <p className="mt-5 max-w-2xl text-sm leading-7 text-zinc-400">{finalExam.description} Every solution is fully typed and becomes available after submission.</p>
               <button type="button" onClick={() => setActive(finalExam)} className="primary-action mt-8">{scores[finalExam.id] ? "Retake final exam" : "Start final exam"}</button>
             </div>

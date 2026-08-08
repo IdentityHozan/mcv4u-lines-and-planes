@@ -50,6 +50,17 @@ textarea {
   font: inherit;
 }
 
+input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
 button,
 a {
   -webkit-tap-highlight-color: transparent;
@@ -93,9 +104,9 @@ a {
 
 .micro-label {
   font-family: var(--font-geist-mono), monospace;
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.13em;
   line-height: 1.4;
   text-transform: uppercase;
 }
@@ -120,7 +131,7 @@ a {
 
 .page-lead {
   max-width: 760px;
-  color: #b1b1b1;
+  color: #c0c0c0;
   font-size: clamp(1rem, 2vw, 1.2rem);
   line-height: 1.8;
 }
@@ -175,7 +186,7 @@ a {
 .field-label {
   display: block;
   margin-bottom: 0.45rem;
-  color: #b4b4b4;
+  color: #c5c5c5;
   font-size: 0.78rem;
   font-weight: 650;
 }

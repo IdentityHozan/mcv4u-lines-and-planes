@@ -98,7 +98,6 @@ export type FormulaGroup = {
 
 export const courseMeta = {
   courseCode: "MCV4U",
-  topicCode: "H",
   title: "Lines and Planes",
   eyebrow: "Grade 12 Calculus & Vectors",
   summary:
@@ -301,7 +300,7 @@ export const conceptModules: ConceptModule[] = [
     ],
     keyChecks: [
       "Three collinear points do not determine a unique plane.",
-      "Two parallel distinct lines also determine a plane, but Topic H commonly emphasizes intersecting lines.",
+      "Two parallel distinct lines also determine a plane, but this course emphasizes intersecting lines.",
       "Always state why your two spanning directions are independent.",
     ],
     workedExample: {
@@ -848,7 +847,7 @@ export const quizzes: Assessment[] = [quizOne, quizTwo, quizThree];
 export const finalExam: Assessment = {
   id: "final-exam-assessment",
   number: "FINAL",
-  title: "Topic H comprehensive exam",
+  title: "Lines and Planes comprehensive exam",
   description: "Eight questions spanning representation, plane construction, systems, intersections, distance, and communication.",
   mode: "exam",
   timeLimit: "35 min",

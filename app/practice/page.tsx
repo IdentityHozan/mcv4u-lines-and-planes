@@ -2,7 +2,7 @@ import Link from "next/link";
 import { HomeworkModule } from "@/components/assessments/HomeworkModule";
 import { PageHeader } from "@/components/layout/PageHeader";
 
-export const metadata = { title: "Practice | MCV4U Topic H" };
+export const metadata = { title: "Practice | MCV4U Lines and Planes" };
 
 export default function PracticePage() {
   return (

@@ -27,9 +27,9 @@ export function SiteHeader() {
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#0a0a0a]/95 backdrop-blur-xl">
       <div className="section-shell flex h-16 items-center justify-between gap-5 sm:h-[4.5rem]">
-        <Link href="/" className="shrink-0" aria-label="MCV4U Topic H home">
+        <Link href="/" className="shrink-0" aria-label="MCV4U Lines and Planes home">
           <span className="block text-sm font-bold tracking-tight text-zinc-100">MCV4U</span>
-          <span className="micro-label block text-sky-300">Topic H</span>
+          <span className="block text-[9px] font-bold uppercase tracking-[0.12em] text-sky-300">Lines and Planes</span>
         </Link>
 
         <nav className="hidden items-center gap-1 xl:flex" aria-label="Primary navigation">

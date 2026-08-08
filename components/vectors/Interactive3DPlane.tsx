@@ -6,6 +6,7 @@ import { useMemo } from "react";
 import * as THREE from "three";
 
 export type Vector3Value = [number, number, number];
+export type CameraView = "isometric" | "front" | "side" | "top";
 
 type Interactive3DPlaneProps = {
   linePoint: Vector3Value;
@@ -21,6 +22,8 @@ type Interactive3DPlaneProps = {
   showNumberLabels: boolean;
   showAxes: boolean;
   showNormalVectors: boolean;
+  showObjectLabels: boolean;
+  cameraView: CameraView;
 };
 
 const EPSILON = 1e-8;
@@ -58,7 +61,17 @@ function makePlane(normal: Vector3Value, constant: number) {
 function CoordinateLabel({ position, children, accent = false }: { position: Vector3Value; children: React.ReactNode; accent?: boolean }) {
   return (
     <Html position={position} center distanceFactor={13} style={{ pointerEvents: "none", userSelect: "none" }}>
-      <span className={`rounded-sm bg-black/80 px-1 py-0.5 font-mono text-[9px] ${accent ? "text-sky-300" : "text-zinc-400"}`}>{children}</span>
+      <span className={`border border-white/10 bg-black/85 px-1.5 py-0.5 font-mono text-[10px] ${accent ? "text-sky-200" : "text-zinc-300"}`}>{children}</span>
+    </Html>
+  );
+}
+
+function ObjectLabel({ position, children, accent = false }: { position: Vector3Value; children: React.ReactNode; accent?: boolean }) {
+  return (
+    <Html position={position} center distanceFactor={10} style={{ pointerEvents: "none", userSelect: "none" }}>
+      <span className={`whitespace-nowrap border px-2 py-1 font-mono text-[10px] font-semibold shadow-lg backdrop-blur ${
+        accent ? "border-sky-400/40 bg-sky-950/90 text-sky-100" : "border-white/20 bg-black/90 text-zinc-100"
+      }`}>{children}</span>
     </Html>
   );
 }
@@ -113,6 +126,7 @@ function Scene(props: Interactive3DPlaneProps) {
     showNumberLabels,
     showAxes,
     showNormalVectors,
+    showObjectLabels,
   } = props;
 
   const safeDirection = useMemo<Vector3Value>(() => {
@@ -205,14 +219,23 @@ function Scene(props: Interactive3DPlaneProps) {
             <meshStandardMaterial color="#38bdf8" emissive="#1688b8" emissiveIntensity={1.2} />
           </mesh>
           <Arrow direction={safeDirection} origin={linePoint} color="#7dd3fc" />
+          {showObjectLabels && (
+            <>
+              <ObjectLabel position={[linePoint[0], linePoint[1] + 0.55, linePoint[2]]}>r₀ ({linePoint.join(", ")})</ObjectLabel>
+              <ObjectLabel position={[trackedPoint.x, trackedPoint.y - 0.55, trackedPoint.z]} accent>r(t) ({trackedPoint.toArray().map((value) => Number(value.toFixed(2))).join(", ")})</ObjectLabel>
+            </>
+          )}
         </>
       )}
 
       {lineVisible && planeVisible && linePlaneIntersection && (
-        <mesh position={linePlaneIntersection}>
-          <sphereGeometry args={[0.22, 28, 28]} />
-          <meshStandardMaterial color="#f5f5f5" emissive="#38bdf8" emissiveIntensity={0.9} />
-        </mesh>
+        <>
+          <mesh position={linePlaneIntersection}>
+            <sphereGeometry args={[0.22, 28, 28]} />
+            <meshStandardMaterial color="#f5f5f5" emissive="#38bdf8" emissiveIntensity={0.9} />
+          </mesh>
+          {showObjectLabels && <ObjectLabel position={[linePlaneIntersection.x, linePlaneIntersection.y + 0.65, linePlaneIntersection.z]}>Intersection</ObjectLabel>}
+        </>
       )}
 
       {planeVisible && showNormalVectors && (
@@ -225,14 +248,28 @@ function Scene(props: Interactive3DPlaneProps) {
         <Line points={planeIntersectionLine} color="#f5f5f5" lineWidth={3} />
       )}
 
+      {planeVisible && showObjectLabels && (
+        <ObjectLabel position={[primaryPlane.point.x + 1, primaryPlane.point.y + 0.6, primaryPlane.point.z + 1]} accent>Plane 1</ObjectLabel>
+      )}
+      {planeVisible && secondPlaneEnabled && showObjectLabels && (
+        <ObjectLabel position={[secondaryPlane.point.x - 1, secondaryPlane.point.y + 0.6, secondaryPlane.point.z - 1]}>Plane 2</ObjectLabel>
+      )}
+
       <OrbitControls makeDefault enableDamping dampingFactor={0.08} minDistance={4} maxDistance={Math.max(28, gridSize * 1.8)} target={[0, 0.6, 0]} />
     </>
   );
 }
 
 export function Interactive3DPlane(props: Interactive3DPlaneProps) {
+  const camera = {
+    isometric: { position: [9, 7, 10] as Vector3Value, up: [0, 1, 0] as Vector3Value },
+    front: { position: [0, 2, 16] as Vector3Value, up: [0, 1, 0] as Vector3Value },
+    side: { position: [16, 2, 0] as Vector3Value, up: [0, 1, 0] as Vector3Value },
+    top: { position: [0, 16, 0.01] as Vector3Value, up: [0, 0, -1] as Vector3Value },
+  }[props.cameraView];
+
   return (
-    <Canvas camera={{ position: [9, 7, 10], fov: 48 }} dpr={[1, 1.75]} gl={{ antialias: true }}>
+    <Canvas key={props.cameraView} camera={{ position: camera.position, up: camera.up, fov: 48 }} dpr={[1, 1.75]} gl={{ antialias: true }}>
       <Scene {...props} />
     </Canvas>
   );
