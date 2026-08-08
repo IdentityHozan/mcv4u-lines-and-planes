@@ -2,13 +2,14 @@
 
 import { Html, Line, OrbitControls } from "@react-three/drei";
 import { Canvas, type ThreeEvent, useFrame } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
 export type Vector3Value = [number, number, number];
 export type CameraView = "isometric" | "front" | "side" | "top";
 export type DistanceMode = "none" | "point-line" | "point-plane";
 export type PlaneDefinitionMode = "normal" | "three-points" | "two-lines" | "point-line";
+export type GridPlacementTarget = "external-point" | "line-anchor" | "tracked-point" | "plane-point";
 export type ScenePointSelection = {
   label: string;
   position: Vector3Value;
@@ -27,14 +28,26 @@ type Interactive3DPlaneProps = {
   gridSize: number;
   showNumberLabels: boolean;
   showAxes: boolean;
+  showSideGrids: boolean;
+  showLineSamples: boolean;
+  showCoordinateGuides: boolean;
+  showGridCursor: boolean;
   showNormalVectors: boolean;
   showObjectLabels: boolean;
   cameraView: CameraView;
   distanceMode: DistanceMode;
   externalPoint: Vector3Value;
   planeDefinitionMode: PlaneDefinitionMode;
+  gridEditingEnabled: boolean;
+  gridPlacementTarget: GridPlacementTarget;
+  gridPlacementHeight: number;
+  gridSnap: number;
+  showApproachGuides: boolean;
+  approachStartParameter: number;
+  approachProgress: number;
   selectedPoint: ScenePointSelection | null;
   onSelectPoint: (selection: ScenePointSelection) => void;
+  onGridPlace: (target: GridPlacementTarget, position: Vector3Value) => void;
 };
 
 const EPSILON = 1e-8;
@@ -189,6 +202,109 @@ function NumberedAxes({ gridSize, showNumbers, showAxes }: { gridSize: number; s
   );
 }
 
+const gridTargetLabels: Record<GridPlacementTarget, string> = {
+  "external-point": "External point",
+  "line-anchor": "Line anchor",
+  "tracked-point": "Tracked point",
+  "plane-point": "Point on Plane 1",
+};
+
+function GridInteractionPlane({
+  gridSize,
+  showCursor,
+  editingEnabled,
+  placementTarget,
+  placementHeight,
+  snap,
+  onSelectPoint,
+  onGridPlace,
+}: {
+  gridSize: number;
+  showCursor: boolean;
+  editingEnabled: boolean;
+  placementTarget: GridPlacementTarget;
+  placementHeight: number;
+  snap: number;
+  onSelectPoint: (selection: ScenePointSelection) => void;
+  onGridPlace: (target: GridPlacementTarget, position: Vector3Value) => void;
+}) {
+  const [hoverPoint, setHoverPoint] = useState<Vector3Value | null>(null);
+
+  useEffect(() => () => {
+    document.body.style.cursor = "default";
+  }, []);
+
+  const snappedPoint = (point: THREE.Vector3): Vector3Value => {
+    const safeSnap = Math.max(0.01, snap);
+    return [
+      Number((Math.round(point.x / safeSnap) * safeSnap).toFixed(3)),
+      Number(placementHeight.toFixed(3)),
+      Number((Math.round(point.z / safeSnap) * safeSnap).toFixed(3)),
+    ];
+  };
+
+  const handlePointerMove = (event: ThreeEvent<PointerEvent>) => {
+    event.stopPropagation();
+    setHoverPoint(snappedPoint(event.point));
+    document.body.style.cursor = editingEnabled ? "crosshair" : "pointer";
+  };
+
+  const handleClick = (event: ThreeEvent<MouseEvent>) => {
+    event.stopPropagation();
+    const point = snappedPoint(event.point);
+    if (editingEnabled) {
+      onGridPlace(placementTarget, point);
+      return;
+    }
+    onSelectPoint({ label: "Grid coordinate", position: point });
+  };
+
+  return (
+    <>
+      <mesh
+        position={[0, 0.002, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        onPointerMove={handlePointerMove}
+        onPointerOut={() => {
+          setHoverPoint(null);
+          document.body.style.cursor = "default";
+        }}
+        onClick={handleClick}
+      >
+        <planeGeometry args={[gridSize, gridSize]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} side={THREE.DoubleSide} />
+      </mesh>
+
+      {showCursor && hoverPoint && (
+        <group position={hoverPoint}>
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[0.24, 0.035, 12, 32]} />
+            <meshBasicMaterial color={editingEnabled ? "#38bdf8" : "#f5f5f5"} />
+          </mesh>
+          <mesh>
+            <sphereGeometry args={[0.065, 16, 16]} />
+            <meshBasicMaterial color="#7dd3fc" />
+          </mesh>
+          {Math.abs(placementHeight) > EPSILON && (
+            <Line
+              points={[[0, -placementHeight, 0], [0, 0, 0]]}
+              color="#7dd3fc"
+              lineWidth={1.2}
+              dashed
+              dashScale={8}
+              dashSize={0.25}
+              gapSize={0.16}
+            />
+          )}
+          <ObjectLabel position={[0, 0.5, 0]} accent={editingEnabled}>
+            {editingEnabled ? gridTargetLabels[placementTarget] : "Grid"} ({hoverPoint.join(", ")})
+          </ObjectLabel>
+        </group>
+      )}
+    </>
+  );
+}
+
 function Scene(props: Interactive3DPlaneProps) {
   const {
     linePoint,
@@ -203,13 +319,25 @@ function Scene(props: Interactive3DPlaneProps) {
     gridSize,
     showNumberLabels,
     showAxes,
+    showSideGrids,
+    showLineSamples,
+    showCoordinateGuides,
+    showGridCursor,
     showNormalVectors,
     showObjectLabels,
     distanceMode,
     externalPoint,
     planeDefinitionMode,
+    gridEditingEnabled,
+    gridPlacementTarget,
+    gridPlacementHeight,
+    gridSnap,
+    showApproachGuides,
+    approachStartParameter,
+    approachProgress,
     selectedPoint,
     onSelectPoint,
+    onGridPlace,
   } = props;
 
   const safeDirection = useMemo<Vector3Value>(() => {
@@ -231,11 +359,15 @@ function Scene(props: Interactive3DPlaneProps) {
   }, [linePoint, parameter, safeDirection]);
 
   const linePlaneIntersection = useMemo(() => {
-    const denominator = dot(primaryPlane.safeNormal, safeDirection);
+    if (dot(planeNormal, planeNormal) < EPSILON || dot(lineDirection, lineDirection) < EPSILON) return null;
+    const denominator = dot(planeNormal, lineDirection);
     if (Math.abs(denominator) < EPSILON) return null;
-    const t = (planeConstant - dot(primaryPlane.safeNormal, linePoint)) / denominator;
-    return new THREE.Vector3(...linePoint).addScaledVector(new THREE.Vector3(...safeDirection), t);
-  }, [linePoint, planeConstant, primaryPlane.safeNormal, safeDirection]);
+    const parameterValue = (planeConstant - dot(planeNormal, linePoint)) / denominator;
+    return {
+      parameter: parameterValue,
+      point: new THREE.Vector3(...linePoint).addScaledVector(new THREE.Vector3(...lineDirection), parameterValue),
+    };
+  }, [lineDirection, linePoint, planeConstant, planeNormal]);
 
   const planeIntersectionLine = useMemo(() => {
     if (!secondPlaneEnabled) return null;
@@ -292,11 +424,47 @@ function Scene(props: Interactive3DPlaneProps) {
     };
   }, [gridSize, primaryPlane.point, primaryPlane.safeNormal]);
 
+  const lineSamples = useMemo(() => {
+    if (dot(lineDirection, lineDirection) < EPSILON) return [];
+    return [-2, -1, 0, 1, 2].map((sampleParameter) => ({
+      parameter: sampleParameter,
+      point: new THREE.Vector3(...linePoint).addScaledVector(new THREE.Vector3(...lineDirection), sampleParameter),
+    }));
+  }, [lineDirection, linePoint]);
+
+  const approachGuide = useMemo(() => {
+    if (!showApproachGuides || !linePlaneIntersection) return null;
+    const normal = new THREE.Vector3(...planeNormal);
+    if (normal.lengthSq() < EPSILON) return null;
+    const direction = new THREE.Vector3(...lineDirection);
+    const start = new THREE.Vector3(...linePoint).addScaledVector(direction, approachStartParameter);
+    const current = new THREE.Vector3(...linePoint).addScaledVector(direction, parameter);
+    const signedResidual = normal.dot(current) - planeConstant;
+    const foot = current.clone().addScaledVector(normal, -signedResidual / normal.lengthSq());
+    const samples = Array.from({ length: 11 }, (_, index) => {
+      const progress = index / 10;
+      const sampleParameter = approachStartParameter + (linePlaneIntersection.parameter - approachStartParameter) * progress;
+      return {
+        progress,
+        point: new THREE.Vector3(...linePoint).addScaledVector(direction, sampleParameter),
+      };
+    });
+    return {
+      start,
+      current,
+      foot,
+      samples,
+      distance: current.distanceTo(foot),
+    };
+  }, [approachStartParameter, lineDirection, linePlaneIntersection, linePoint, parameter, planeConstant, planeNormal, showApproachGuides]);
+
   const planeVisible = mode === "plane" || mode === "both";
   const lineVisible = mode === "line" || mode === "both";
   const validPrimaryPlane = dot(planeNormal, planeNormal) >= EPSILON;
+  const validLine = dot(lineDirection, lineDirection) >= EPSILON;
 
   const selectPlanePoint = (label: string) => (event: ThreeEvent<MouseEvent>) => {
+    if (gridEditingEnabled) return;
     event.stopPropagation();
     onSelectPoint({ label, position: roundedPoint(event.point) });
   };
@@ -313,14 +481,30 @@ function Scene(props: Interactive3DPlaneProps) {
       <directionalLight position={[6, 9, 4]} intensity={1.7} color="#dff5ff" />
 
       <gridHelper args={[gridSize, gridSize, "#343434", "#1d1d1d"]} />
+      {showSideGrids && (
+        <>
+          <gridHelper args={[gridSize, gridSize, "#263640", "#151a1d"]} rotation={[Math.PI / 2, 0, 0]} />
+          <gridHelper args={[gridSize, gridSize, "#263640", "#151a1d"]} rotation={[0, 0, Math.PI / 2]} />
+        </>
+      )}
       <NumberedAxes gridSize={gridSize} showNumbers={showNumberLabels} showAxes={showAxes} />
+      <GridInteractionPlane
+        gridSize={gridSize}
+        showCursor={showGridCursor}
+        editingEnabled={gridEditingEnabled}
+        placementTarget={gridPlacementTarget}
+        placementHeight={gridPlacementHeight}
+        snap={gridSnap}
+        onSelectPoint={onSelectPoint}
+        onGridPlace={onGridPlace}
+      />
 
       {planeVisible && (
         <group
           position={primaryPlane.point}
           quaternion={primaryPlane.quaternion}
           onClick={selectPlanePoint("Point on Plane 1")}
-          onPointerOver={showPointer}
+          onPointerOver={gridEditingEnabled ? undefined : showPointer}
           onPointerOut={() => {
             document.body.style.cursor = "default";
           }}
@@ -341,7 +525,7 @@ function Scene(props: Interactive3DPlaneProps) {
           position={secondaryPlane.point}
           quaternion={secondaryPlane.quaternion}
           onClick={selectPlanePoint("Point on Plane 2")}
-          onPointerOver={showPointer}
+          onPointerOver={gridEditingEnabled ? undefined : showPointer}
           onPointerOut={() => {
             document.body.style.cursor = "default";
           }}
@@ -372,16 +556,71 @@ function Scene(props: Interactive3DPlaneProps) {
         </>
       )}
 
+      {lineVisible && validLine && showLineSamples && lineSamples.map((sample) => (
+        <group key={sample.parameter}>
+          <SelectablePoint
+            position={sample.point.toArray() as Vector3Value}
+            label={`Line sample t = ${sample.parameter}`}
+            color={sample.parameter === 0 ? "#f5f5f5" : "#7dd3fc"}
+            size={0.1}
+            onSelect={onSelectPoint}
+          />
+          {showObjectLabels && (
+            <CoordinateLabel position={[sample.point.x, sample.point.y + 0.3, sample.point.z]} accent={sample.parameter !== 0}>
+              t={sample.parameter}
+            </CoordinateLabel>
+          )}
+        </group>
+      ))}
+
+      {lineVisible && validLine && showCoordinateGuides && (
+        <>
+          <Line points={[trackedPoint, [trackedPoint.x, 0, trackedPoint.z]]} color="#38bdf8" lineWidth={1.2} dashed dashScale={8} dashSize={0.22} gapSize={0.16} />
+          <Line points={[trackedPoint, [trackedPoint.x, trackedPoint.y, 0]]} color="#f5f5f5" lineWidth={1.1} dashed dashScale={8} dashSize={0.22} gapSize={0.16} />
+          <Line points={[trackedPoint, [0, trackedPoint.y, trackedPoint.z]]} color="#8a8a8a" lineWidth={1.1} dashed dashScale={8} dashSize={0.22} gapSize={0.16} />
+        </>
+      )}
+
       {lineVisible && planeVisible && linePlaneIntersection && (
         <>
           <SelectablePoint
-            position={linePlaneIntersection.toArray() as Vector3Value}
+            position={linePlaneIntersection.point.toArray() as Vector3Value}
             label="Line-plane intersection"
             color="#f5f5f5"
             size={0.24}
             onSelect={onSelectPoint}
           />
-          {showObjectLabels && <ObjectLabel position={[linePlaneIntersection.x, linePlaneIntersection.y + 0.65, linePlaneIntersection.z]}>Intersection</ObjectLabel>}
+          {showObjectLabels && <ObjectLabel position={[linePlaneIntersection.point.x, linePlaneIntersection.point.y + 0.65, linePlaneIntersection.point.z]}>Intersection</ObjectLabel>}
+        </>
+      )}
+
+      {lineVisible && planeVisible && approachGuide && linePlaneIntersection && (
+        <>
+          <Line points={[approachGuide.start, linePlaneIntersection.point]} color="#52616a" lineWidth={1.2} />
+          {approachGuide.start.distanceTo(approachGuide.current) > EPSILON && (
+            <Line points={[approachGuide.start, approachGuide.current]} color="#38bdf8" lineWidth={3} />
+          )}
+          {approachGuide.current.distanceTo(linePlaneIntersection.point) > EPSILON && (
+            <Line points={[approachGuide.current, linePlaneIntersection.point]} color="#f5f5f5" lineWidth={1.7} dashed dashScale={8} dashSize={0.28} gapSize={0.16} />
+          )}
+          {approachGuide.distance > EPSILON && (
+            <Line points={[approachGuide.current, approachGuide.foot]} color="#7dd3fc" lineWidth={1.8} dashed dashScale={8} dashSize={0.24} gapSize={0.14} />
+          )}
+          {approachGuide.samples.map((sample, index) => (
+            <mesh key={index} position={sample.point}>
+              <sphereGeometry args={[sample.progress <= approachProgress + 0.001 ? 0.075 : 0.045, 14, 14]} />
+              <meshBasicMaterial
+                color={sample.progress <= approachProgress + 0.001 ? "#38bdf8" : "#71717a"}
+                transparent
+                opacity={sample.progress <= approachProgress + 0.001 ? 0.95 : 0.42}
+              />
+            </mesh>
+          ))}
+          {showObjectLabels && (
+            <ObjectLabel position={approachGuide.current.toArray() as Vector3Value} accent>
+              Distance {Number(approachGuide.distance.toFixed(3))}
+            </ObjectLabel>
+          )}
         </>
       )}
 

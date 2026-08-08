@@ -1,7 +1,7 @@
-import { VisualizerHub } from "@/components/vectors/VisualizerHub";
+import { VectorLab } from "@/components/vectors/VectorLab";
 
 export const metadata = { title: "Interactive Visualizer | MCV4U Lines and Planes" };
 
 export default function VisualizerPage() {
-  return <VisualizerHub />;
+  return <VectorLab />;
 }

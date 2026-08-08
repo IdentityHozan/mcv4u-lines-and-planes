@@ -8,6 +8,7 @@ import {
   Interactive3DPlane,
   type CameraView,
   type DistanceMode,
+  type GridPlacementTarget,
   type PlaneDefinitionMode,
   type ScenePointSelection,
   type Vector3Value,
@@ -15,7 +16,7 @@ import {
 
 type Mode = "line" | "plane" | "both";
 type ControlPanel = "scene" | "line" | "planes" | "distance" | "motion" | "analysis";
-type AnimationMode = "point" | "plane-shift" | "line-rotate" | "normal-rotate";
+type AnimationMode = "intersection-approach" | "point" | "plane-shift" | "line-rotate" | "normal-rotate";
 
 type Preset = {
   name: string;
@@ -55,6 +56,7 @@ const controlPanels: Array<{ id: ControlPanel; label: string }> = [
 ];
 
 const animationModes: Array<{ id: AnimationMode; label: string; value: string }> = [
+  { id: "intersection-approach", label: "Approach intersection", value: "Parameter, residual, distance" },
   { id: "point", label: "Move point", value: "Parameter t" },
   { id: "plane-shift", label: "Shift Plane 1", value: "Plane constant k₁" },
   { id: "line-rotate", label: "Rotate line", value: "Direction vector d" },
@@ -68,12 +70,22 @@ const defaults = {
   gridSize: 18,
   showNumberLabels: true,
   showAxes: true,
+  showSideGrids: false,
+  showLineSamples: false,
+  showCoordinateGuides: false,
+  showGridCursor: true,
   showNormalVectors: true,
   showObjectLabels: true,
   cameraView: "isometric" as CameraView,
   externalPoint: [3, 2, 0] as Vector3Value,
   distanceMode: "none" as DistanceMode,
   planeDefinitionMode: "normal" as PlaneDefinitionMode,
+  gridEditingEnabled: false,
+  gridPlacementTarget: "external-point" as GridPlacementTarget,
+  gridPlacementHeight: 0,
+  gridSnap: 0.5,
+  showApproachGuides: true,
+  approachStartParameter: -3,
 };
 
 const EPSILON = 1e-8;
@@ -194,6 +206,7 @@ export function VectorLab({ embedded = false }: { embedded?: boolean }) {
   const workspaceRef = useRef<HTMLDivElement>(null);
   const parameterTravelDirectionRef = useRef(1);
   const planeTravelDirectionRef = useRef(1);
+  const approachProgressRef = useRef(0);
   const [linePoint, setLinePoint] = useState<Vector3Value>(defaults.linePoint);
   const [lineDirection, setLineDirection] = useState<Vector3Value>(defaults.lineDirection);
   const [planeNormal, setPlaneNormal] = useState<Vector3Value>(defaults.planeNormal);
@@ -206,12 +219,23 @@ export function VectorLab({ embedded = false }: { embedded?: boolean }) {
   const [gridSize, setGridSize] = useState(defaults.gridSize);
   const [showNumberLabels, setShowNumberLabels] = useState(defaults.showNumberLabels);
   const [showAxes, setShowAxes] = useState(defaults.showAxes);
+  const [showSideGrids, setShowSideGrids] = useState(defaults.showSideGrids);
+  const [showLineSamples, setShowLineSamples] = useState(defaults.showLineSamples);
+  const [showCoordinateGuides, setShowCoordinateGuides] = useState(defaults.showCoordinateGuides);
+  const [showGridCursor, setShowGridCursor] = useState(defaults.showGridCursor);
   const [showNormalVectors, setShowNormalVectors] = useState(defaults.showNormalVectors);
   const [showObjectLabels, setShowObjectLabels] = useState(defaults.showObjectLabels);
   const [cameraView, setCameraView] = useState<CameraView>(defaults.cameraView);
   const [externalPoint, setExternalPoint] = useState<Vector3Value>(defaults.externalPoint);
   const [distanceMode, setDistanceMode] = useState<DistanceMode>(defaults.distanceMode);
   const [planeDefinitionMode, setPlaneDefinitionMode] = useState<PlaneDefinitionMode>(defaults.planeDefinitionMode);
+  const [gridEditingEnabled, setGridEditingEnabled] = useState(defaults.gridEditingEnabled);
+  const [gridPlacementTarget, setGridPlacementTarget] = useState<GridPlacementTarget>(defaults.gridPlacementTarget);
+  const [gridPlacementHeight, setGridPlacementHeight] = useState(defaults.gridPlacementHeight);
+  const [gridSnap, setGridSnap] = useState(defaults.gridSnap);
+  const [showApproachGuides, setShowApproachGuides] = useState(defaults.showApproachGuides);
+  const [approachStartParameter, setApproachStartParameter] = useState(defaults.approachStartParameter);
+  const [approachProgress, setApproachProgress] = useState(0);
   const [animating, setAnimating] = useState(false);
   const [animationMode, setAnimationMode] = useState<AnimationMode>("point");
   const [animationSpeed, setAnimationSpeed] = useState(1);
@@ -220,6 +244,22 @@ export function VectorLab({ embedded = false }: { embedded?: boolean }) {
   const [controlsOpen, setControlsOpen] = useState(true);
   const [activePanel, setActivePanel] = useState<ControlPanel>("scene");
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const intersectionData = useMemo(() => {
+    if (magnitude(planeNormal) < EPSILON || magnitude(lineDirection) < EPSILON) return null;
+    const denominator = dot(planeNormal, lineDirection);
+    if (Math.abs(denominator) < EPSILON) return null;
+    const intersectionParameter = (planeConstant - dot(planeNormal, linePoint)) / denominator;
+    return {
+      parameter: intersectionParameter,
+      point: add(linePoint, scale(lineDirection, intersectionParameter)),
+    };
+  }, [lineDirection, linePoint, planeConstant, planeNormal]);
+  const intersectionDataRef = useRef(intersectionData);
+
+  useEffect(() => {
+    intersectionDataRef.current = intersectionData;
+  }, [intersectionData]);
 
   useEffect(() => {
     if (!animating) return;
@@ -266,11 +306,29 @@ export function VectorLab({ embedded = false }: { embedded?: boolean }) {
         setPlaneNormal((current) => rotateAroundY(current, step * 0.65));
       }
 
+      if (animationMode === "intersection-approach") {
+        if (!intersectionDataRef.current) {
+          setAnimating(false);
+          return;
+        }
+        const next = Math.min(1, approachProgressRef.current + step * 0.34);
+        approachProgressRef.current = next;
+        setApproachProgress(Number(next.toFixed(4)));
+        if (next >= 1) {
+          setAnimating(false);
+          return;
+        }
+      }
+
       frame = requestAnimationFrame(animate);
     };
     frame = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(frame);
   }, [animating, animationMode, animationSpeed]);
+
+  useEffect(() => {
+    approachProgressRef.current = approachProgress;
+  }, [approachProgress]);
 
   useEffect(() => {
     if (!copyStatus) return;
@@ -393,14 +451,26 @@ export function VectorLab({ embedded = false }: { embedded?: boolean }) {
     return Math.acos(cosine) * 180 / Math.PI;
   }, [planeNormal, secondPlaneEnabled, secondPlaneNormal]);
 
+  const currentParameter = animationMode === "intersection-approach" && intersectionData
+    ? approachStartParameter + (intersectionData.parameter - approachStartParameter) * approachProgress
+    : parameter;
+
   const trackedPoint: Vector3Value = [
-    linePoint[0] + parameter * lineDirection[0],
-    linePoint[1] + parameter * lineDirection[1],
-    linePoint[2] + parameter * lineDirection[2],
+    linePoint[0] + currentParameter * lineDirection[0],
+    linePoint[1] + currentParameter * lineDirection[1],
+    linePoint[2] + currentParameter * lineDirection[2],
   ];
+  const trackedPlaneResidual = dot(planeNormal, trackedPoint) - planeConstant;
+  const trackedPlaneDistance = magnitude(planeNormal) < EPSILON
+    ? null
+    : Math.abs(trackedPlaneResidual) / magnitude(planeNormal);
+  const approachPercent = Math.round(approachProgress * 100);
 
   const animationReadout = {
-    point: `t = ${formatNumber(parameter)}`,
+    "intersection-approach": intersectionData
+      ? `t = ${formatNumber(currentParameter)}, residual = ${formatNumber(trackedPlaneResidual)}, distance = ${formatNumber(trackedPlaneDistance ?? 0)}`
+      : "A unique line-plane intersection is required",
+    point: `t = ${formatNumber(currentParameter)}`,
     "plane-shift": `k₁ = ${formatNumber(planeConstant)}`,
     "line-rotate": `d = (${lineDirection.map(formatNumber).join(", ")})`,
     "normal-rotate": `n₁ = (${planeNormal.map(formatNumber).join(", ")})`,
@@ -418,6 +488,9 @@ export function VectorLab({ embedded = false }: { embedded?: boolean }) {
     setMode("both");
     setAnimating(false);
     setAnimationMode("point");
+    setApproachProgress(0);
+    approachProgressRef.current = 0;
+    setGridEditingEnabled(false);
     setSelectedPoint(null);
     parameterTravelDirectionRef.current = 1;
     planeTravelDirectionRef.current = 1;
@@ -428,12 +501,21 @@ export function VectorLab({ embedded = false }: { embedded?: boolean }) {
     setGridSize(defaults.gridSize);
     setShowNumberLabels(true);
     setShowAxes(true);
+    setShowSideGrids(defaults.showSideGrids);
+    setShowLineSamples(defaults.showLineSamples);
+    setShowCoordinateGuides(defaults.showCoordinateGuides);
+    setShowGridCursor(defaults.showGridCursor);
     setShowNormalVectors(true);
     setShowObjectLabels(true);
     setCameraView("isometric");
     setExternalPoint(defaults.externalPoint);
     setDistanceMode(defaults.distanceMode);
     setPlaneDefinitionMode(defaults.planeDefinitionMode);
+    setGridPlacementTarget(defaults.gridPlacementTarget);
+    setGridPlacementHeight(defaults.gridPlacementHeight);
+    setGridSnap(defaults.gridSnap);
+    setShowApproachGuides(defaults.showApproachGuides);
+    setApproachStartParameter(defaults.approachStartParameter);
     setAnimationSpeed(1);
   };
 
@@ -441,6 +523,12 @@ export function VectorLab({ embedded = false }: { embedded?: boolean }) {
     setDistanceMode(nextMode);
     if (nextMode === "point-line") setMode((current) => current === "plane" ? "both" : current);
     if (nextMode === "point-plane") setMode((current) => current === "line" ? "both" : current);
+  };
+
+  const updateManualParameter = (value: number) => {
+    setAnimating(false);
+    setAnimationMode("point");
+    setParameter(value);
   };
 
   const resetAnimationValue = () => {
@@ -451,10 +539,38 @@ export function VectorLab({ embedded = false }: { embedded?: boolean }) {
     if (animationMode === "plane-shift") setPlaneConstant(defaults.planeConstant);
     if (animationMode === "line-rotate") setLineDirection(defaults.lineDirection);
     if (animationMode === "normal-rotate") setPlaneNormal(defaults.planeNormal);
+    if (animationMode === "intersection-approach") {
+      approachProgressRef.current = 0;
+      setApproachProgress(0);
+      setParameter(approachStartParameter);
+    }
+  };
+
+  const toggleAnimation = () => {
+    if (animating) {
+      setAnimating(false);
+      return;
+    }
+    if (animationMode === "intersection-approach") {
+      if (!intersectionData) return;
+      if (approachProgress >= 1) {
+        approachProgressRef.current = 0;
+        setApproachProgress(0);
+      }
+    }
+    setAnimating(true);
   };
 
   const chooseAnimationMode = (nextMode: AnimationMode) => {
+    setAnimating(false);
     setAnimationMode(nextMode);
+    if (nextMode === "intersection-approach") {
+      approachProgressRef.current = 0;
+      setApproachProgress(0);
+      setParameter(approachStartParameter);
+      setShowApproachGuides(true);
+      setMode("both");
+    }
     if (nextMode === "point" || nextMode === "line-rotate") {
       setMode((current) => current === "plane" ? "both" : current);
     }
@@ -462,6 +578,51 @@ export function VectorLab({ embedded = false }: { embedded?: boolean }) {
       setMode((current) => current === "line" ? "both" : current);
     }
     if (nextMode === "normal-rotate") setShowNormalVectors(true);
+  };
+
+  const handleGridPlace = (target: GridPlacementTarget, position: Vector3Value) => {
+    if (target === "external-point") {
+      setExternalPoint(position);
+      setSelectedPoint({ label: "External point", position });
+      return;
+    }
+
+    if (target === "line-anchor") {
+      setLinePoint(position);
+      setMode((current) => current === "plane" ? "both" : current);
+      setSelectedPoint({ label: "Line anchor", position });
+      return;
+    }
+
+    if (target === "tracked-point") {
+      const directionSquared = dot(lineDirection, lineDirection);
+      if (directionSquared < EPSILON) {
+        setCopyStatus("Enter a non-zero line direction before placing the tracked point");
+        return;
+      }
+      const nextParameter = dot(subtract(position, linePoint), lineDirection) / directionSquared;
+      const projectedPoint = add(linePoint, scale(lineDirection, nextParameter));
+      setAnimating(false);
+      setAnimationMode("point");
+      setParameter(Number(nextParameter.toFixed(4)));
+      setMode((current) => current === "plane" ? "both" : current);
+      setSelectedPoint({ label: "Tracked point", position: projectedPoint });
+      return;
+    }
+
+    if (magnitude(planeNormal) < EPSILON) {
+      setCopyStatus("Enter a non-zero plane normal before placing Plane 1");
+      return;
+    }
+    setPlaneConstant(Number(dot(planeNormal, position).toFixed(4)));
+    setMode((current) => current === "line" ? "both" : current);
+    setSelectedPoint({ label: "Point on Plane 1", position });
+  };
+
+  const activateGridPlacement = (target: GridPlacementTarget) => {
+    setGridPlacementTarget(target);
+    setGridEditingEnabled(true);
+    setShowGridCursor(true);
   };
 
   const copyEquations = async () => {
@@ -531,24 +692,53 @@ export function VectorLab({ embedded = false }: { embedded?: boolean }) {
             secondPlaneEnabled={secondPlaneEnabled}
             secondPlaneNormal={secondPlaneNormal}
             secondPlaneConstant={secondPlaneConstant}
-            parameter={parameter}
+            parameter={currentParameter}
             mode={mode}
             gridSize={gridSize}
             showNumberLabels={showNumberLabels}
             showAxes={showAxes}
+            showSideGrids={showSideGrids}
+            showLineSamples={showLineSamples}
+            showCoordinateGuides={showCoordinateGuides}
+            showGridCursor={showGridCursor}
             showNormalVectors={showNormalVectors}
             showObjectLabels={showObjectLabels}
             cameraView={cameraView}
             distanceMode={distanceMode}
             externalPoint={externalPoint}
             planeDefinitionMode={planeDefinitionMode}
+            gridEditingEnabled={gridEditingEnabled}
+            gridPlacementTarget={gridPlacementTarget}
+            gridPlacementHeight={gridPlacementHeight}
+            gridSnap={gridSnap}
+            showApproachGuides={animationMode === "intersection-approach" && showApproachGuides}
+            approachStartParameter={approachStartParameter}
+            approachProgress={approachProgress}
             selectedPoint={selectedPoint}
             onSelectPoint={setSelectedPoint}
+            onGridPlace={handleGridPlace}
           />
 
           <div className="pointer-events-none absolute left-3 top-3 hidden border border-white/15 bg-black/85 px-3 py-2 text-[11px] text-zinc-300 backdrop-blur sm:block">
-            Select points and planes. Drag to rotate. Scroll or pinch to zoom.
+            {gridEditingEnabled ? "Click the grid to place the selected object. Drag to rotate." : "Click the grid, points, or planes. Drag to rotate. Scroll or pinch to zoom."}
           </div>
+
+          {animationMode === "intersection-approach" && intersectionData && showApproachGuides && (
+            <div className="pointer-events-none absolute left-1/2 top-14 w-[min(92%,390px)] -translate-x-1/2 border border-sky-400/30 bg-black/90 px-4 py-3 shadow-2xl backdrop-blur sm:top-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-300">Approach to intersection</p>
+                <span className="font-mono text-[10px] text-zinc-300">{approachPercent}%</span>
+              </div>
+              <div className="mt-2 h-1.5 overflow-hidden bg-white/10">
+                <div className="h-full bg-sky-400 transition-[width] duration-100" style={{ width: `${approachPercent}%` }} />
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-3 font-mono text-[10px]">
+                <div><span className="block text-zinc-500">t</span><span className="mt-0.5 block text-zinc-100">{formatNumber(currentParameter)}</span></div>
+                <div><span className="block text-zinc-500">Residual</span><span className="mt-0.5 block text-sky-200">{formatNumber(trackedPlaneResidual)}</span></div>
+                <div><span className="block text-zinc-500">Distance</span><span className="mt-0.5 block text-zinc-100">{formatNumber(trackedPlaneDistance ?? 0)}</span></div>
+              </div>
+            </div>
+          )}
 
           {selectedPoint && (
             <div className="absolute right-3 top-3 border border-sky-400/30 bg-black/90 px-3 py-2.5 shadow-xl backdrop-blur">
@@ -708,6 +898,10 @@ export function VectorLab({ embedded = false }: { embedded?: boolean }) {
                         <div className="mt-3 grid grid-cols-2 gap-2">
                           <Toggle label="Grid numbers" checked={showNumberLabels} onChange={setShowNumberLabels} />
                           <Toggle label="Axes" checked={showAxes} onChange={setShowAxes} />
+                          <Toggle label="Side grids" checked={showSideGrids} onChange={setShowSideGrids} />
+                          <Toggle label="Line samples" checked={showLineSamples} onChange={setShowLineSamples} />
+                          <Toggle label="Coordinate guides" checked={showCoordinateGuides} onChange={setShowCoordinateGuides} />
+                          <Toggle label="Grid cursor" checked={showGridCursor} onChange={setShowGridCursor} />
                           <Toggle label="Vectors" checked={showNormalVectors} onChange={setShowNormalVectors} />
                           <Toggle label="Object labels" checked={showObjectLabels} onChange={setShowObjectLabels} />
                           <Toggle label="Plane 2" checked={secondPlaneEnabled} onChange={setSecondPlaneEnabled} />
@@ -728,12 +922,73 @@ export function VectorLab({ embedded = false }: { embedded?: boolean }) {
                           />
                         </label>
                       </section>
+
+                      <section className="border-t border-white/10 pt-6">
+                        <h2 className="text-sm font-semibold text-zinc-100">Grid interaction</h2>
+                        <div className="mt-3">
+                          <Toggle label="Grid editing" checked={gridEditingEnabled} onChange={setGridEditingEnabled} />
+                        </div>
+                        {gridEditingEnabled && (
+                          <div className="mt-4 space-y-5">
+                            <div>
+                              <p className="text-xs font-semibold text-zinc-300">Placement target</p>
+                              <div className="mt-3 grid grid-cols-2 gap-2" role="group" aria-label="Grid placement target">
+                                {([
+                                  { id: "external-point" as GridPlacementTarget, label: "External point" },
+                                  { id: "line-anchor" as GridPlacementTarget, label: "Line anchor" },
+                                  { id: "tracked-point" as GridPlacementTarget, label: "Tracked point" },
+                                  { id: "plane-point" as GridPlacementTarget, label: "Plane 1" },
+                                ]).map((item) => (
+                                  <button
+                                    key={item.id}
+                                    type="button"
+                                    onClick={() => setGridPlacementTarget(item.id)}
+                                    aria-pressed={gridPlacementTarget === item.id}
+                                    className={`min-h-10 border px-3 text-xs font-semibold ${
+                                      gridPlacementTarget === item.id
+                                        ? "border-sky-400/45 bg-sky-400/[0.09] text-sky-200"
+                                        : "border-white/12 bg-[#0b0b0b] text-zinc-400 hover:border-white/25"
+                                    }`}
+                                  >
+                                    {item.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <NumberStepper
+                                compact
+                                label="Placement y"
+                                value={gridPlacementHeight}
+                                step={0.5}
+                                min={-gridSize / 2}
+                                max={gridSize / 2}
+                                onChange={setGridPlacementHeight}
+                              />
+                              <NumberStepper
+                                compact
+                                label="Grid snap"
+                                value={gridSnap}
+                                step={0.25}
+                                min={0.25}
+                                max={2}
+                                onChange={setGridSnap}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </section>
                     </div>
                   )}
 
                   {activePanel === "line" && (
                     <div className="space-y-7">
-                      <NumericVectorInput label="Anchor point r₀" value={linePoint} onChange={setLinePoint} />
+                      <div>
+                        <NumericVectorInput label="Anchor point r₀" value={linePoint} onChange={setLinePoint} />
+                        <button type="button" onClick={() => activateGridPlacement("line-anchor")} className="secondary-action mt-3 w-full text-xs">
+                          Place line anchor on grid
+                        </button>
+                      </div>
                       <NumericVectorInput label="Direction vector d" value={lineDirection} onChange={setLineDirection} />
                       <section className="border-t border-white/10 pt-6">
                         <h2 className="text-sm font-semibold text-zinc-100">Line equation forms</h2>
@@ -749,20 +1004,20 @@ export function VectorLab({ embedded = false }: { embedded?: boolean }) {
                       <section className="border-t border-white/10 pt-6">
                         <h2 className="text-sm font-semibold text-zinc-100">Tracked point</h2>
                         <div className="mt-4">
-                          <NumberStepper label="Parameter t" value={parameter} step={0.1} min={-3} max={3} onChange={setParameter} />
+                          <NumberStepper label="Parameter t" value={currentParameter} step={0.1} min={-3} max={3} onChange={updateManualParameter} />
                           <input
                             className="range-input mt-4 w-full"
                             type="range"
                             min="-3"
                             max="3"
                             step="0.1"
-                            value={parameter}
-                            onChange={(event) => setParameter(Number(event.target.value))}
+                            value={currentParameter}
+                            onChange={(event) => updateManualParameter(Number(event.target.value))}
                             aria-label="Parameter t slider"
                           />
                         </div>
                         <div className="mt-3 flex items-center justify-between gap-3 border border-sky-400/20 bg-sky-400/[0.045] px-3 py-3 text-xs">
-                          <span className="text-zinc-400">Point at t = {formatNumber(parameter)}</span>
+                          <span className="text-zinc-400">Point at t = {formatNumber(currentParameter)}</span>
                           <span className="font-mono font-semibold text-sky-200">({trackedPoint.map(formatNumber).join(", ")})</span>
                         </div>
                         <button
@@ -780,6 +1035,9 @@ export function VectorLab({ embedded = false }: { embedded?: boolean }) {
                         >
                           {animating && animationMode === "point" ? "Stop point animation" : "Animate point"}
                         </button>
+                        <button type="button" onClick={() => activateGridPlacement("tracked-point")} className="secondary-action mt-2 w-full text-xs">
+                          Set tracked point from grid
+                        </button>
                       </section>
                     </div>
                   )}
@@ -792,6 +1050,9 @@ export function VectorLab({ embedded = false }: { embedded?: boolean }) {
                           <MathJaxRenderer math={`\\(${formatPlaneEquation(planeNormal, planeConstant)}\\)`} className="mt-2 text-sm text-sky-200" />
                         </div>
                         <NumericVectorInput label="Normal vector n₁" value={planeNormal} onChange={setPlaneNormal} />
+                        <button type="button" onClick={() => activateGridPlacement("plane-point")} className="secondary-action w-full text-xs">
+                          Place Plane 1 through grid point
+                        </button>
                         <NumberStepper label="Plane constant k₁" value={planeConstant} step={0.1} min={-6} max={6} onChange={setPlaneConstant} />
                         <input
                           className="range-input w-full"
@@ -873,7 +1134,12 @@ export function VectorLab({ embedded = false }: { embedded?: boolean }) {
                         </div>
                       </section>
 
-                      <NumericVectorInput label="External point P" value={externalPoint} onChange={setExternalPoint} />
+                      <div>
+                        <NumericVectorInput label="External point P" value={externalPoint} onChange={setExternalPoint} />
+                        <button type="button" onClick={() => activateGridPlacement("external-point")} className="secondary-action mt-3 w-full text-xs">
+                          Place external point on grid
+                        </button>
+                      </div>
 
                       {distanceMode === "point-line" && (
                         <section className="border border-sky-400/20 bg-sky-400/[0.045] p-4">
@@ -945,6 +1211,52 @@ export function VectorLab({ embedded = false }: { embedded?: boolean }) {
                           <p className="mt-2 break-words font-mono text-xs text-zinc-100">{animationReadout}</p>
                         </div>
 
+                        {animationMode === "intersection-approach" && (
+                          <div className="mt-5 space-y-5">
+                            <NumberStepper
+                              label="Starting parameter"
+                              value={approachStartParameter}
+                              step={0.25}
+                              min={-10}
+                              max={10}
+                              onChange={(value) => {
+                                setAnimating(false);
+                                approachProgressRef.current = 0;
+                                setApproachProgress(0);
+                                setApproachStartParameter(value);
+                              }}
+                            />
+                            <label className="block">
+                              <span className="mb-2 flex items-center justify-between text-xs font-semibold text-zinc-300">
+                                Approach progress
+                                <b className="font-mono font-normal text-sky-300">{approachPercent}%</b>
+                              </span>
+                              <input
+                                className="range-input w-full"
+                                type="range"
+                                min="0"
+                                max="1"
+                                step="0.01"
+                                value={approachProgress}
+                                disabled={!intersectionData}
+                                onChange={(event) => {
+                                  setAnimating(false);
+                                  const nextProgress = Number(event.target.value);
+                                  approachProgressRef.current = nextProgress;
+                                  setApproachProgress(nextProgress);
+                                }}
+                                aria-label="Intersection approach progress"
+                              />
+                            </label>
+                            <div className="grid grid-cols-3 gap-2 border border-white/10 bg-[#0b0b0b] p-3 font-mono text-[10px]">
+                              <div><span className="block text-zinc-500">Target t</span><span className="mt-1 block text-zinc-100">{intersectionData ? formatNumber(intersectionData.parameter) : "Not defined"}</span></div>
+                              <div><span className="block text-zinc-500">Residual</span><span className="mt-1 block text-sky-200">{formatNumber(trackedPlaneResidual)}</span></div>
+                              <div><span className="block text-zinc-500">Distance</span><span className="mt-1 block text-zinc-100">{trackedPlaneDistance === null ? "Not defined" : formatNumber(trackedPlaneDistance)}</span></div>
+                            </div>
+                            <Toggle label="Approach guides" checked={showApproachGuides} onChange={setShowApproachGuides} />
+                          </div>
+                        )}
+
                         <div className="mt-5">
                           <NumberStepper
                             label="Animation speed"
@@ -969,11 +1281,12 @@ export function VectorLab({ embedded = false }: { embedded?: boolean }) {
                         <div className="mt-5 grid grid-cols-2 gap-2">
                           <button
                             type="button"
-                            onClick={() => setAnimating((current) => !current)}
-                            className={animating ? "primary-action" : "secondary-action"}
+                            onClick={toggleAnimation}
+                            disabled={animationMode === "intersection-approach" && !intersectionData}
+                            className={`${animating ? "primary-action" : "secondary-action"} disabled:cursor-not-allowed disabled:opacity-35`}
                             aria-pressed={animating}
                           >
-                            {animating ? "Stop animation" : "Start animation"}
+                            {animating ? "Stop animation" : animationMode === "intersection-approach" && approachProgress >= 1 ? "Replay animation" : "Start animation"}
                           </button>
                           <button type="button" onClick={resetAnimationValue} className="secondary-action">
                             Reset motion
@@ -1048,7 +1361,7 @@ export function VectorLab({ embedded = false }: { embedded?: boolean }) {
                       )}
 
                       <section className="flex items-center justify-between gap-3 border border-white/10 bg-[#0b0b0b] px-4 py-3 text-xs">
-                        <span className="text-zinc-400">Point at t = {formatNumber(parameter)}</span>
+                        <span className="text-zinc-400">Point at t = {formatNumber(currentParameter)}</span>
                         <span className="font-mono font-semibold text-sky-200">({trackedPoint.map(formatNumber).join(", ")})</span>
                       </section>
                     </div>
