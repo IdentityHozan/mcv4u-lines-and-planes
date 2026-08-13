@@ -68,7 +68,7 @@ function VectorFields({ label, value, onChange }: { label: string; value: Vector
             onChange={(nextValue) => {
               const next = [...value] as Vector3Value;
               next[index] = nextValue;
-              onChange(next);
+              onChange(next); 
             }}
           />
         ))}
