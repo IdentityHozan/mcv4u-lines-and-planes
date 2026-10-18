@@ -16,6 +16,10 @@ import {
 type Experiment = "line-plane" | "two-planes" | "distance";
 type MotionMode = "approach" | "travel" | "slide-plane";
 
+export type VectorLabProps = {
+  embedded?: boolean;
+};
+
 const EPSILON = 1e-8;
 
 const experimentOptions: Array<{ id: Experiment; label: string; description: string }> = [
@@ -113,7 +117,7 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
   );
 }
 
-export function VectorLab() {
+export function VectorLab({ embedded = false }: VectorLabProps = {}) {
   const workspaceRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef(0);
   const travelDirectionRef = useRef(1);
@@ -338,7 +342,7 @@ export function VectorLab() {
   const sceneDistanceMode: DistanceMode = experiment === "distance" ? distanceMode : "none";
 
   return (
-    <div ref={workspaceRef} className="visualizer-workspace flex h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-[#0a0a0a] sm:h-[calc(100dvh-4.5rem)]">
+    <div ref={workspaceRef} className={`visualizer-workspace flex min-h-0 flex-col overflow-hidden bg-[#0a0a0a] ${embedded ? "h-full" : "h-[calc(100dvh-4rem)] sm:h-[calc(100dvh-4.5rem)]"}`}>
       <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-[#0d0d0d] px-3 py-2 sm:px-5">
         <div>
           <h1 className="text-sm font-semibold text-zinc-100 sm:text-base">3D Lines and Planes</h1>

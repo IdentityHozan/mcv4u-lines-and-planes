@@ -30,6 +30,11 @@ import {
 } from "./vectorMath";
 
 type WorkspaceMode = "vectors" | "geometry";
+export type VectorWorkbenchProps = {
+  embedded?: boolean;
+  vectorOnly?: boolean;
+  title?: string;
+};
 type OperationId =
   | "magnitude"
   | "unit"
@@ -141,7 +146,11 @@ function VectorInput({ entry, dimension, onChange }: { entry: VectorEntry; dimen
   );
 }
 
-export function VectorWorkbench() {
+export function VectorWorkbench({
+  embedded = false,
+  vectorOnly = false,
+  title = "Vector Calculator",
+}: VectorWorkbenchProps = {}) {
   const workspaceRef = useRef<HTMLDivElement>(null);
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("vectors");
   const [dimension, setDimension] = useState<VectorDimension>(2);
@@ -329,23 +338,23 @@ export function VectorWorkbench() {
   };
 
   return (
-    <div ref={workspaceRef} className="visualizer-workspace flex h-[calc(100dvh-4rem)] flex-col overflow-hidden bg-[#0a0a0a] sm:h-[calc(100dvh-4.5rem)]">
+    <div ref={workspaceRef} className={`visualizer-workspace flex min-h-0 flex-col overflow-hidden bg-[#0a0a0a] ${embedded ? "h-full" : "h-[calc(100dvh-4rem)] sm:h-[calc(100dvh-4.5rem)]"}`}>
       <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-[#0d0d0d] px-3 py-2 sm:px-5">
         <div>
-          <h1 className="text-sm font-semibold text-zinc-100 sm:text-base">Vector Calculator</h1>
+          <h1 className="text-sm font-semibold text-zinc-100 sm:text-base">{title}</h1>
           <p className="hidden text-[11px] text-zinc-500 sm:block">Choose a task, enter the values, then read the exact result.</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex border border-white/12 bg-black/60 p-1" role="group" aria-label="Calculator section">
+          {!vectorOnly && <div className="flex border border-white/12 bg-black/60 p-1" role="group" aria-label="Calculator section">
             <button type="button" onClick={() => setWorkspaceMode("vectors")} aria-pressed={workspaceMode === "vectors"} className={`min-h-8 px-3 text-[11px] font-semibold ${workspaceMode === "vectors" ? "bg-sky-400/15 text-sky-200" : "text-zinc-400"}`}>Vectors</button>
             <button type="button" onClick={() => setWorkspaceMode("geometry")} aria-pressed={workspaceMode === "geometry"} className={`min-h-8 px-3 text-[11px] font-semibold ${workspaceMode === "geometry" ? "bg-sky-400/15 text-sky-200" : "text-zinc-400"}`}>Lines and planes</button>
-          </div>
+          </div>}
           <button type="button" onClick={reset} className="visualizer-toolbar-button">Reset</button>
           <button type="button" onClick={() => void toggleFullscreen()} className="visualizer-toolbar-button">{isFullscreen ? "Exit full screen" : "Full screen"}</button>
         </div>
       </header>
 
-      {workspaceMode === "geometry" ? (
+      {!vectorOnly && workspaceMode === "geometry" ? (
         <div className="visualizer-control-scroll min-h-0 flex-1 overflow-y-auto p-3 sm:p-6">
           <div className="mx-auto max-w-6xl"><VectorCalculator /></div>
         </div>
