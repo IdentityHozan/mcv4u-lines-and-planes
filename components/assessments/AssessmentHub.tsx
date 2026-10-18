@@ -6,7 +6,7 @@ import { finalExam, katcLabels, quizzes, type Assessment, type KATCCategory } fr
 import { KATCBadge } from "./KATCBadge";
 import { QuizEngine } from "./QuizEngine";
 
-const SCORE_KEY = "mcv4u-topic-h-scores";
+const SCORE_KEY = "mcv4u-lines-and-planes-scores";
 
 type AssessmentHubProps = {
   variant: "quizzes" | "exam";
@@ -40,12 +40,12 @@ export function AssessmentHub({ variant }: AssessmentHubProps) {
             const saved = scores[quiz.id];
             const categories = Array.from(new Set(quiz.questions.flatMap((question) => question.tags))) as KATCCategory[];
             return (
-              <article key={quiz.id} className="flex min-h-[390px] flex-col border border-white/10 bg-[#101010] p-6">
+              <article key={quiz.id} className="flex min-h-[340px] flex-col border border-white/10 bg-[#101010] p-6">
                 <div className="flex items-start justify-between gap-4">
                   <span className="micro-label text-sky-300">Quiz {quiz.number}</span>
                   {saved && <span className="font-mono text-xs text-zinc-400">Best: {saved.score}/{saved.total}</span>}
                 </div>
-                <h2 className="mt-10 text-2xl font-semibold tracking-tight">{quiz.title}</h2>
+                <h2 className="mt-7 text-2xl font-semibold tracking-tight">{quiz.title}</h2>
                 <p className="mt-3 text-sm leading-7 text-zinc-400">{quiz.description}</p>
                 <div className="mt-5 flex flex-wrap gap-2">{categories.map((category) => <KATCBadge key={category} category={category} showLabel />)}</div>
                 <dl className="mt-auto grid grid-cols-2 gap-3 border-t border-white/10 pt-5 text-xs">
@@ -63,7 +63,7 @@ export function AssessmentHub({ variant }: AssessmentHubProps) {
             <div className="p-7 sm:p-10">
               <p className="micro-label text-sky-300">Comprehensive final assessment</p>
               <h2 className="mt-5 max-w-3xl text-3xl font-semibold tracking-tight sm:text-5xl">Complete the Lines and Planes final exam</h2>
-              <p className="mt-5 max-w-2xl text-sm leading-7 text-zinc-400">{finalExam.description} Every solution is fully typed and becomes available after submission.</p>
+              <p className="mt-5 max-w-2xl text-sm leading-7 text-zinc-400">{finalExam.description} Compare written responses with the criteria and student samples after submitting.</p>
               <button type="button" onClick={() => setActive(finalExam)} className="primary-action mt-8">{scores[finalExam.id] ? "Retake final exam" : "Start final exam"}</button>
             </div>
             <div className="border-t border-sky-400/15 p-7 lg:border-l lg:border-t-0">

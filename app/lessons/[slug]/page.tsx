@@ -4,8 +4,10 @@ import { notFound } from "next/navigation";
 import { StepByStepSolution } from "@/components/assessments/StepByStepSolution";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { VideoLessonPlayer } from "@/components/lessons/VideoLessonPlayer";
+import { LessonDiagram } from "@/components/lessons/LessonDiagram";
 import { Badge } from "@/components/ui/Badge";
 import { MathJaxRenderer } from "@/components/ui/MathJaxRenderer";
+import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { conceptModules, videoLessons } from "@/data/linesAndPlanesData";
 import { getManagedLesson } from "@/lib/contentStore";
 
@@ -49,19 +51,28 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
 
     return (
       <>
-        <PageHeader eyebrow={`${lesson.index} · ${lesson.kicker}`} title={lesson.title} description={lesson.summary} />
+        <PageHeader eyebrow={`Lesson ${lesson.index}`} title={lesson.title} description={lesson.summary} />
         <article className="section-shell page-section">
-          {video && (
-            <section aria-labelledby="video-lesson-title">
-              <p className="micro-label text-sky-300">Instructional video</p>
-              <h2 id="video-lesson-title" className="mt-3 text-2xl font-semibold">Watch and navigate by chapter</h2>
-              <div className="mt-6"><VideoLessonPlayer lesson={video} /></div>
+          <ScrollReveal className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
+            <LessonDiagram lessonId={lesson.id} />
+            <section aria-labelledby="lesson-method-title" className="border border-white/10 bg-[#101010] p-6 sm:p-7">
+              <p className="micro-label text-sky-300">Start here</p>
+              <h2 id="lesson-method-title" className="mt-3 text-2xl font-semibold">How to think about it</h2>
+              <p className="mt-4 text-sm leading-7 text-zinc-300">{lesson.instruction.idea}</p>
+              <ol className="mt-6 space-y-4 border-t border-white/10 pt-5">
+                {lesson.instruction.steps.map((step, index) => (
+                  <li key={step} className="grid grid-cols-[28px_1fr] gap-3 text-sm leading-6 text-zinc-400">
+                    <span className="font-mono text-xs text-sky-300">{String(index + 1).padStart(2, "0")}</span>
+                    <span>{step}</span>
+                  </li>
+                ))}
+              </ol>
             </section>
-          )}
+          </ScrollReveal>
 
-          <section className={video ? "mt-16" : ""} aria-labelledby="equation-forms-title">
-            <p className="micro-label text-sky-300">Definitions and equations</p>
-            <h2 id="equation-forms-title" className="mt-3 text-2xl font-semibold">Key forms</h2>
+          <ScrollReveal className="mt-14" aria-labelledby="equation-forms-title">
+            <p className="micro-label text-sky-300">Core notation</p>
+            <h2 id="equation-forms-title" className="mt-3 text-2xl font-semibold">Read each form</h2>
             <div className="mt-6 grid gap-px bg-white/10 lg:grid-cols-2">
               {lesson.equations.map((equation) => (
                 <div key={equation.label} className="bg-[#101010] p-6">
@@ -71,12 +82,17 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
                 </div>
               ))}
             </div>
-          </section>
+          </ScrollReveal>
 
-          <section className="mt-14 grid gap-7 lg:grid-cols-[0.75fr_1.25fr]" aria-labelledby="worked-example-title">
+          <ScrollReveal className="mt-8 border-l-2 border-sky-400 bg-sky-400/[0.045] p-5 sm:p-6">
+            <p className="micro-label text-sky-300">Common mistake</p>
+            <p className="mt-3 max-w-4xl text-sm leading-7 text-zinc-300">{lesson.instruction.commonMistake}</p>
+          </ScrollReveal>
+
+          <ScrollReveal className="mt-14 grid gap-7 lg:grid-cols-[0.72fr_1.28fr]" aria-labelledby="worked-example-title">
             <div className="border border-white/10 bg-[#101010] p-6">
-              <p className="micro-label text-sky-300">Before moving on</p>
-              <h2 className="mt-3 text-xl font-semibold">Quality checks</h2>
+              <p className="micro-label text-sky-300">Check your work</p>
+              <h2 className="mt-3 text-xl font-semibold">Three checks</h2>
               <ul className="mt-5 space-y-4">
                 {lesson.keyChecks.map((check) => <li key={check} className="border-l border-sky-400/50 pl-4 text-sm leading-7 text-zinc-400">{check}</li>)}
               </ul>
@@ -88,7 +104,15 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
                 <StepByStepSolution steps={lesson.workedExample.steps} answer={lesson.workedExample.conclusion} defaultOpen title="Worked reasoning" />
               </div>
             </div>
-          </section>
+          </ScrollReveal>
+
+          {video && (
+            <ScrollReveal className="mt-14" aria-labelledby="video-lesson-title">
+              <p className="micro-label text-sky-300">Video lesson</p>
+              <h2 id="video-lesson-title" className="mt-3 text-2xl font-semibold">Watch by chapter</h2>
+              <div className="mt-6"><VideoLessonPlayer lesson={video} /></div>
+            </ScrollReveal>
+          )}
 
           <nav className="mt-16 grid gap-3 border-t border-white/10 pt-7 sm:grid-cols-3" aria-label="Lesson navigation">
             <div>{previous && <Link href={`/lessons/${previous.id}`} className="secondary-action w-full sm:w-auto">Previous lesson</Link>}</div>
@@ -115,7 +139,7 @@ export default async function LessonPage({ params }: { params: Promise<{ slug: s
           </div>
         )}
         {lesson.equation && <MathJaxRenderer math={lesson.equation} className="mt-8 border border-sky-400/25 bg-sky-400/[0.04] p-6 text-xl text-sky-200" />}
-        <MathJaxRenderer math={lesson.body} className="prose-copy mt-8 max-w-4xl whitespace-pre-wrap text-base leading-8 text-zinc-300" />
+        <ScrollReveal><MathJaxRenderer math={lesson.body} className="prose-copy mt-8 max-w-4xl whitespace-pre-wrap text-base leading-8 text-zinc-300" /></ScrollReveal>
         {lesson.takeaways.length > 0 && (
           <section className="mt-10 max-w-4xl border border-white/10 bg-[#101010] p-6">
             <h2 className="text-xl font-semibold">Key takeaways</h2>

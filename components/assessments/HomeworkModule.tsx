@@ -6,7 +6,7 @@ import { KATCBadge } from "./KATCBadge";
 import { StepByStepSolution } from "./StepByStepSolution";
 import { homeworkSets } from "@/data/linesAndPlanesData";
 
-const STORAGE_KEY = "mcv4u-topic-h-homework";
+const STORAGE_KEY = "mcv4u-lines-and-planes-homework";
 
 export function HomeworkModule() {
   const [activeSet, setActiveSet] = useState(homeworkSets[0].id);

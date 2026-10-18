@@ -10,8 +10,7 @@ const navigation = [
   { href: "/visualizer", label: "Visualizer" },
   { href: "/calculator", label: "Calculator" },
   { href: "/practice", label: "Practice" },
-  { href: "/assessments", label: "Quizzes" },
-  { href: "/exam", label: "Final Exam" },
+  { href: "/assessments", label: "Assessments" },
   { href: "/admin", label: "Admin" },
 ];
 

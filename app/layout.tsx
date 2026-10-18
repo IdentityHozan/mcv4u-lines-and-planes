@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Footer } from "@/components/layout/Footer";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import "./globals.css";
 
@@ -8,7 +7,6 @@ export const metadata: Metadata = {
   description:
     "An interactive Grade 12 Calculus and Vectors learning portal for lines, planes, intersections, and distance in three-space.",
   other: {
-    "codex-preview": "development",
     "theme-color": "#0A0A0A",
   },
   icons: {
@@ -52,8 +50,7 @@ export default function RootLayout({
       </head>
       <body>
         <SiteHeader />
-        <main className="min-h-[calc(100vh-12rem)] pt-16 sm:pt-[4.5rem]">{children}</main>
-        <Footer />
+        <main className="min-h-[calc(100vh-4rem)] pt-16 sm:min-h-[calc(100vh-4.5rem)] sm:pt-[4.5rem]">{children}</main>
       </body>
     </html>
   );

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AssessmentHub } from "@/components/assessments/AssessmentHub";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { ScrollReveal } from "@/components/ui/ScrollReveal";
 
 export const metadata = { title: "Quizzes | MCV4U Lines and Planes" };
 
@@ -8,12 +9,12 @@ export default function AssessmentsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Three interactive quizzes"
-        title="Check each group of skills"
-        description="Choose an answer, receive immediate feedback, and open the complete reasoning. Every question is explicitly tagged by KATC learning category."
+        eyebrow="3 quizzes"
+        title="Check your understanding"
+        description="Each quiz combines multiple-choice and written-response questions. Compare every answer with complete reasoning and a student sample."
         actions={<><Link href="/practice" className="secondary-action">Return to practice</Link><Link href="/exam" className="primary-action">View final exam</Link></>}
       />
-      <section className="section-shell page-section"><AssessmentHub variant="quizzes" /></section>
+      <ScrollReveal className="section-shell page-section"><AssessmentHub variant="quizzes" /></ScrollReveal>
     </>
   );
 }

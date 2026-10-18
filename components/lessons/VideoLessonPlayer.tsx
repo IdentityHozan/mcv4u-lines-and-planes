@@ -33,14 +33,14 @@ export function VideoLessonPlayer({ lesson }: VideoLessonPlayerProps) {
           </div>
           <h3 className="mt-5 text-2xl font-semibold tracking-tight">{lesson.title}</h3>
           <p className="mt-3 text-sm leading-7 text-zinc-500">{lesson.description}</p>
-          <ul className="mt-6 space-y-3 border-t border-white/10 pt-5">
-            {lesson.takeaways.map((takeaway) => (
-              <li key={takeaway} className="flex gap-3 text-sm leading-6 text-zinc-400">
-                <span className="mt-2 h-1.5 w-1.5 shrink-0 bg-sky-300" />
-                {takeaway}
+          <ol className="mt-6 space-y-3 border-t border-white/10 pt-5">
+            {lesson.takeaways.map((takeaway, index) => (
+              <li key={takeaway} className="grid grid-cols-[28px_1fr] gap-3 text-sm leading-6 text-zinc-400">
+                <span className="font-mono text-xs text-sky-300">{String(index + 1).padStart(2, "0")}</span>
+                <span>{takeaway}</span>
               </li>
             ))}
-          </ul>
+          </ol>
         </div>
         <div className="border-t border-white/10 p-5 lg:border-l lg:border-t-0">
           <p className="micro-label text-zinc-500">Video chapters</p>

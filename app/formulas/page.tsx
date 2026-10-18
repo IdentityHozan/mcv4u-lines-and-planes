@@ -2,6 +2,7 @@ import Link from "next/link";
 import { DownloadFormulaSheetButton } from "@/components/lessons/DownloadFormulaSheetButton";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { MathJaxRenderer } from "@/components/ui/MathJaxRenderer";
+import { ScrollReveal } from "@/components/ui/ScrollReveal";
 import { formulaGroups } from "@/data/linesAndPlanesData";
 
 export const metadata = { title: "Formula Sheet | MCV4U Lines and Planes" };
@@ -10,15 +11,15 @@ export default function FormulaSheetPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Lines and Planes reference"
+        eyebrow="Quick reference"
         title="Formula sheet"
-        description="A compact reference for line and plane equations, intersections, and distance formulas. Download a standalone MathJax version for printing or offline review."
+        description="Use this page after learning the method. It keeps the essential equations, conditions, and notation in one place."
         actions={<><DownloadFormulaSheetButton /><Link href="/lessons" className="secondary-action">Return to lessons</Link></>}
       />
       <section className="section-shell page-section">
         <div className="space-y-12">
-          {formulaGroups.map((group) => (
-            <section key={group.title}>
+          {formulaGroups.map((group, index) => (
+            <ScrollReveal key={group.title} delay={index * 0.04}>
               <h2 className="text-2xl font-semibold">{group.title}</h2>
               <div className="mt-5 divide-y divide-white/10 border-y border-white/10">
                 {group.formulas.map((formula) => (
@@ -29,7 +30,7 @@ export default function FormulaSheetPage() {
                   </div>
                 ))}
               </div>
-            </section>
+            </ScrollReveal>
           ))}
         </div>
       </section>

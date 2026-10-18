@@ -42,6 +42,62 @@ export function vectorMagnitude(vector: WorkbenchVector, dimension: VectorDimens
   return Math.sqrt(dotVectors(vector, vector, dimension));
 }
 
+export function squaredMagnitude(vector: WorkbenchVector, dimension: VectorDimension) {
+  return dotVectors(vector, vector, dimension);
+}
+
+function greatestCommonDivisor(first: number, second: number) {
+  let a = Math.abs(Math.round(first));
+  let b = Math.abs(Math.round(second));
+  while (b !== 0) {
+    const remainder = a % b;
+    a = b;
+    b = remainder;
+  }
+  return a || 1;
+}
+
+function squareFreeParts(value: number) {
+  let outside = 1;
+  let inside = Math.max(0, Math.round(value));
+  for (let factor = 2; factor * factor <= inside; factor += 1) {
+    const square = factor * factor;
+    while (inside % square === 0) {
+      outside *= factor;
+      inside /= square;
+    }
+  }
+  return { outside, inside };
+}
+
+function approximateFraction(value: number, maxDenominator = 400) {
+  if (!Number.isFinite(value)) return null;
+  for (let denominator = 1; denominator <= maxDenominator; denominator += 1) {
+    const numerator = Math.round(value * denominator);
+    if (Math.abs(value - numerator / denominator) < 1e-9) {
+      const divisor = greatestCommonDivisor(numerator, denominator);
+      return { numerator: numerator / divisor, denominator: denominator / divisor };
+    }
+  }
+  return null;
+}
+
+export function exactMagnitudeLatex(vector: WorkbenchVector, dimension: VectorDimension) {
+  const squared = squaredMagnitude(vector, dimension);
+  if (squared < VECTOR_EPSILON) return "0";
+
+  const fraction = approximateFraction(squared);
+  if (!fraction) return `\\sqrt{${formatNumber(squared)}}`;
+
+  if (fraction.denominator !== 1) {
+    return `\\sqrt{\\frac{${fraction.numerator}}{${fraction.denominator}}}`;
+  }
+
+  const { outside, inside } = squareFreeParts(fraction.numerator);
+  if (inside === 1) return String(outside);
+  return outside === 1 ? `\\sqrt{${inside}}` : `${outside}\\sqrt{${inside}}`;
+}
+
 export function normalizeVector(vector: WorkbenchVector, dimension: VectorDimension) {
   const magnitude = vectorMagnitude(vector, dimension);
   if (magnitude < VECTOR_EPSILON) return null;

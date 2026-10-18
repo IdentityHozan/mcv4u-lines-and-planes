@@ -24,6 +24,11 @@ export type ConceptModule = {
   title: string;
   kicker: string;
   summary: string;
+  instruction: {
+    idea: string;
+    steps: string[];
+    commonMistake: string;
+  };
   equations: EquationForm[];
   keyChecks: string[];
   workedExample: {
@@ -71,15 +76,26 @@ export type HomeworkSet = {
   problems: HomeworkProblem[];
 };
 
-export type AssessmentQuestion = {
+type AssessmentQuestionBase = {
   id: string;
   prompt: string;
   tags: KATCCategory[];
-  options: string[];
-  correctIndex: number;
   rationale: string;
   steps: SolutionStep[];
 };
+
+export type AssessmentQuestion = AssessmentQuestionBase & (
+  | {
+      kind?: "multiple-choice";
+      options: string[];
+      correctIndex: number;
+    }
+  | {
+      kind: "written";
+      criteria: string[];
+      sampleAnswer: string;
+    }
+);
 
 export type Assessment = {
   id: string;
@@ -135,6 +151,15 @@ export const conceptModules: ConceptModule[] = [
     kicker: "R² and R³ representation",
     summary:
       "A line is determined by one anchor point and one non-zero direction vector. Each equation form encodes that same geometry differently.",
+    instruction: {
+      idea: "Think of a line as a starting position plus repeated movement in one fixed direction.",
+      steps: [
+        "Identify or calculate one point on the line.",
+        "Find a non-zero direction vector.",
+        "Write vector form first, then read the parametric or symmetric form from it.",
+      ],
+      commonMistake: "Do not use a different parameter for each coordinate. One parameter controls the entire line.",
+    },
     equations: [
       {
         label: "Vector form",
@@ -191,6 +216,15 @@ export const conceptModules: ConceptModule[] = [
     kicker: "Span vectors and normal vectors",
     summary:
       "A plane needs one anchor point and two non-parallel directions, or equivalently one anchor point and one non-zero normal vector.",
+    instruction: {
+      idea: "A plane extends in two independent directions. A normal vector describes the direction perpendicular to both.",
+      steps: [
+        "Choose an anchor point on the plane.",
+        "Use two independent span vectors or find a normal with a cross product.",
+        "Convert to point-normal form, then expand if a Cartesian equation is required.",
+      ],
+      commonMistake: "Parallel span vectors produce only a line, not a plane.",
+    },
     equations: [
       {
         label: "Vector form",
@@ -247,6 +281,15 @@ export const conceptModules: ConceptModule[] = [
     kicker: "Points, traces, and intercepts",
     summary:
       "A useful 3D sketch records orientation, not artistic perspective. Plot ordered triples along the x, y, and z axes, then use intercepts or traces to establish the plane.",
+    instruction: {
+      idea: "A 3D sketch should communicate location and orientation clearly, even if it is not drawn to scale.",
+      steps: [
+        "Draw and label the positive x, y, and z directions.",
+        "Plot each ordered triple by tracking all three coordinates.",
+        "For a plane, use three intercepts, two traces, or two spanning directions.",
+      ],
+      commonMistake: "Do not connect three collinear points and call the result a plane.",
+    },
     equations: [
       {
         label: "Axis intercepts",
@@ -281,6 +324,15 @@ export const conceptModules: ConceptModule[] = [
     kicker: "Conditions for uniqueness",
     summary:
       "The data must produce two independent in-plane directions. If those directions collapse into one, the plane is not uniquely determined.",
+    instruction: {
+      idea: "Every valid definition of a plane must provide one anchor and two independent directions.",
+      steps: [
+        "Choose a convenient anchor from the given information.",
+        "Build two vectors that lie in the plane.",
+        "Check that the vectors are not scalar multiples before writing the plane.",
+      ],
+      commonMistake: "Three points define a unique plane only when the points are non-collinear.",
+    },
     equations: [
       {
         label: "Three non-collinear points",
@@ -319,6 +371,15 @@ export const conceptModules: ConceptModule[] = [
     kicker: "Substitution and classification",
     summary:
       "Substitute the line's parametric coordinates into the plane. The resulting one-variable equation reveals whether there is one intersection, none, or infinitely many.",
+    instruction: {
+      idea: "At an intersection, the same point must satisfy both the line and the plane.",
+      steps: [
+        "Write x, y, and z from the line in parametric form.",
+        "Substitute all three coordinates into the plane equation.",
+        "Interpret the result, then return to the line to find the point when a unique parameter exists.",
+      ],
+      commonMistake: "Finding the parameter is not the final answer. Substitute it back to obtain the intersection point.",
+    },
     equations: [
       {
         label: "Fast denominator test",
@@ -353,6 +414,15 @@ export const conceptModules: ConceptModule[] = [
     kicker: "A line, a plane, or nothing",
     summary:
       "Non-parallel planes intersect in a line. Parallel normals indicate either coincident planes or distinct parallel planes.",
+    instruction: {
+      idea: "The common solution set of two non-parallel planes has one free parameter, so it forms a line.",
+      steps: [
+        "Compare the normal vectors to identify parallel planes quickly.",
+        "For non-parallel planes, eliminate one variable and choose a free parameter.",
+        "Write the remaining coordinates as a vector equation and verify the direction with a cross product.",
+      ],
+      commonMistake: "A cross product gives the direction of the intersection line, but you still need one point on both planes.",
+    },
     equations: [
       {
         label: "Direction of intersection",
@@ -387,6 +457,15 @@ export const conceptModules: ConceptModule[] = [
     kicker: "Read the geometry in the algebra",
     summary:
       "A consistent system has at least one common point. It may have a unique solution or infinitely many. An inconsistent system has no common solution.",
+    instruction: {
+      idea: "Row reduction describes geometry. A pivot gives a restriction, a free variable gives movement, and a contradiction removes every possible solution.",
+      steps: [
+        "Eliminate variables without changing the solution set.",
+        "Look for a unique solution, one or more free variables, or a contradiction.",
+        "State both the algebraic result and the matching geometric relationship.",
+      ],
+      commonMistake: "Infinitely many solutions are consistent because common points still exist.",
+    },
     equations: [
       {
         label: "Unique solution",
@@ -425,6 +504,15 @@ export const conceptModules: ConceptModule[] = [
     kicker: "Perpendicular displacement",
     summary:
       "Distance means the length of the shortest segment. In R² use the scalar line formula; in R³ use the magnitude of the cross product to isolate the perpendicular component.",
+    instruction: {
+      idea: "The shortest route from a point to a line is always perpendicular to the line.",
+      steps: [
+        "Choose an anchor point A on the line and form the displacement from A to P.",
+        "Remove the component parallel to the line using a projection or a cross product.",
+        "Take the magnitude and keep the exact radical until the final approximation is requested.",
+      ],
+      commonMistake: "The distance is a scalar length. Do not leave the answer as a displacement vector.",
+    },
     equations: [
       {
         label: "Point to line in R²",
@@ -469,7 +557,7 @@ export const videoLessons: VideoLesson[] = [
     youtubeId: "KgJn-zihiEc",
     sourceUrl: "https://www.youtube.com/watch?v=KgJn-zihiEc",
     creator: "JK Math",
-    duration: "Full lesson · 8+ min",
+    duration: "On average, 8 mins",
     timestamps: [
       { time: "00:00", seconds: 0, label: "What defines a line" },
       { time: "02:10", seconds: 130, label: "Parametric equations" },
@@ -491,7 +579,7 @@ export const videoLessons: VideoLesson[] = [
     youtubeId: "C6tMbe-ZmCM",
     sourceUrl: "https://www.youtube.com/watch?v=C6tMbe-ZmCM",
     creator: "JK Math",
-    duration: "Full lesson · 8+ min",
+    duration: "On average, 8 mins",
     timestamps: [
       { time: "00:00", seconds: 0, label: "Plane geometry" },
       { time: "02:25", seconds: 145, label: "Normal vectors" },
@@ -554,6 +642,19 @@ export const homeworkSets: HomeworkSet[] = [
         ],
         answer: "No. The parameter forced by x gives y=-1, not y=-3.",
       },
+      {
+        id: "hw1-p4",
+        title: "Cartesian line in R³",
+        prompt: "Find a vector equation for the line formed by x+y+z=4 and x-y+z=2.",
+        tags: ["A", "T"],
+        hint: "Eliminate one variable, choose a free parameter, then separate the constant and parameter parts.",
+        steps: [
+          { label: "Eliminate", text: "Subtract the second plane from the first.", math: String.raw`\[2y=2\Rightarrow y=1\]` },
+          { label: "Choose a parameter", text: "Both equations now give x+z=3. Let z=t.", math: String.raw`\[x=3-t,\quad y=1,\quad z=t\]` },
+          { label: "Write vector form", text: "Separate the fixed point and direction.", math: String.raw`\[\vec r=(3,1,0)+t(-1,0,1)\]` },
+        ],
+        answer: String.raw`\(\vec r=(3,1,0)+t(-1,0,1)\).`,
+      },
     ],
   },
   {
@@ -601,6 +702,19 @@ export const homeworkSets: HomeworkSet[] = [
           { label: "Plane equation", text: "Use A=(1,0,2).", math: String.raw`\[(x-1)-y+2(z-2)=0\Rightarrow x-y+2z=5\]` },
         ],
         answer: String.raw`\(x-y+2z=5\).`,
+      },
+      {
+        id: "hw2-p4",
+        title: "Two intersecting lines",
+        prompt: "Two lines intersect at P(2,1,0) and have directions d₁=(1,0,1) and d₂=(0,2,-1). Find their plane.",
+        tags: ["A", "T", "C"],
+        hint: "The two line directions are spanning vectors. Cross them to find a normal.",
+        steps: [
+          { label: "Find a normal", text: "Cross the two directions.", math: String.raw`\[(1,0,1)\times(0,2,-1)=(-2,1,2)\]` },
+          { label: "Use the intersection point", text: "Build point-normal form at P.", math: String.raw`\[-2(x-2)+(y-1)+2z=0\]` },
+          { label: "Simplify", text: "Collect the constant terms.", math: String.raw`\[-2x+y+2z=-3\]` },
+        ],
+        answer: String.raw`\(-2x+y+2z=-3\).`,
       },
     ],
   },
@@ -650,6 +764,19 @@ export const homeworkSets: HomeworkSet[] = [
         ],
         answer: "The line lies in the plane, so there are infinitely many intersection points.",
       },
+      {
+        id: "hw3-p4",
+        title: "Parallel or contained",
+        prompt: "Classify r=(0,0,1)+t(2,-2,0) relative to the plane x+y+z=3. Show both required tests.",
+        tags: ["K", "T", "C"],
+        hint: "First test n dot d. Then substitute the anchor into the plane.",
+        steps: [
+          { label: "Direction test", text: "The plane normal is n=(1,1,1).", math: String.raw`\[\vec n\cdot\vec d=(1,1,1)\cdot(2,-2,0)=0\]` },
+          { label: "Anchor test", text: "Evaluate the plane at (0,0,1).", math: String.raw`\[0+0+1\ne3\]` },
+          { label: "Classify", text: "The line direction is parallel to the plane, but the anchor is outside.", math: String.raw`\[L\parallel\Pi,\qquad L\cap\Pi=\varnothing\]` },
+        ],
+        answer: "The line is parallel to and disjoint from the plane, so there is no intersection.",
+      },
     ],
   },
   {
@@ -698,6 +825,20 @@ export const homeworkSets: HomeworkSet[] = [
         ],
         answer: "(a) coincident and consistent with infinitely many solutions; (b) parallel and inconsistent.",
       },
+      {
+        id: "hw4-p4",
+        title: "Closest point on a line",
+        prompt: "For P(4,2,1) and r=(1,0,1)+t(1,1,0), find the closest point on the line and the exact distance.",
+        tags: ["A", "T", "C"],
+        hint: "Project AP onto the line direction to find the parameter of the perpendicular foot.",
+        steps: [
+          { label: "Build the displacement", text: "Use the line anchor A=(1,0,1).", math: String.raw`\[\overrightarrow{AP}=(3,2,0)\]` },
+          { label: "Find the foot parameter", text: "Project AP onto d=(1,1,0).", math: String.raw`\[t=\frac{\overrightarrow{AP}\cdot\vec d}{\vec d\cdot\vec d}=\frac{5}{2}\]` },
+          { label: "Find the foot", text: "Evaluate the line at t=5/2.", math: String.raw`\[H=\left(\frac72,\frac52,1\right)\]` },
+          { label: "Measure the distance", text: "Take the magnitude of PH.", math: String.raw`\[d=\left\|\left(\frac12,-\frac12,0\right)\right\|=\sqrt{\frac12}=\frac{\sqrt2}{2}\]` },
+        ],
+        answer: String.raw`The closest point is \(H=(7/2,5/2,1)\), and the distance is \(\sqrt2/2\).`,
+      },
     ],
   },
 ];
@@ -708,7 +849,7 @@ const quizOne: Assessment = {
   title: "Line equation fluency",
   description: "Read, convert, and communicate line equations in R² and R³.",
   mode: "quiz",
-  timeLimit: "8 min",
+  timeLimit: "15 min",
   questions: [
     {
       id: "q1-1",
@@ -749,6 +890,52 @@ const quizOne: Assessment = {
         { label: "Read coordinates", text: "The parametric system is x=1+2t, y=3, z=4-t.", math: String.raw`\[t=\frac{x-1}{2}=\frac{z-4}{-1},\qquad y=3\]` },
       ],
     },
+    {
+      id: "q1-4",
+      prompt: String.raw`The lines \(\vec r=(1,0,2)+t(2,-1,3)\) and \(\vec r=(5,-2,8)+s(4,-2,6)\) have what relationship?`,
+      tags: ["T"],
+      options: ["Parallel and distinct", "The same line", "Perpendicular", "Skew"],
+      correctIndex: 1,
+      rationale: "The second direction is twice the first, and its anchor is the point obtained from the first line when t=2.",
+      steps: [
+        { label: "Compare directions", text: "The direction vectors are parallel.", math: String.raw`\[(4,-2,6)=2(2,-1,3)\]` },
+        { label: "Test the second anchor", text: "Use t=2 on the first line.", math: String.raw`\[(1,0,2)+2(2,-1,3)=(5,-2,8)\]` },
+      ],
+    },
+    {
+      id: "q1-5",
+      prompt: "Why does one Cartesian equation in R³ not define a line?",
+      tags: ["K", "C"],
+      options: [
+        "One linear equation in R³ defines a plane.",
+        "A line cannot be described with equations.",
+        "Every Cartesian equation defines a point.",
+        "A line needs three independent parameters.",
+      ],
+      correctIndex: 0,
+      rationale: "One independent linear constraint reduces three-dimensional space to a two-dimensional plane. A Cartesian line needs two independent plane equations.",
+      steps: [
+        { label: "Count dimensions", text: "One independent constraint removes one degree of freedom.", math: String.raw`\[3-1=2\quad\text{dimensions}\]` },
+      ],
+    },
+    {
+      id: "q1-6",
+      kind: "written",
+      prompt: String.raw`Explain how you would test whether \(S(7,-2,5)\) lies on \(\vec r=(1,1,2)+t(2,-1,1)\). State the conclusion.`,
+      tags: ["T", "C"],
+      criteria: [
+        "Solves for a parameter using at least one coordinate.",
+        "Checks the same parameter in the remaining coordinates.",
+        "States a clear geometric conclusion.",
+      ],
+      sampleAnswer: "From x, 7=1+2t gives t=3. The y-coordinate would then be 1-3=-2, which agrees, but the z-coordinate would be 2+3=5, which also agrees. The same value t=3 satisfies all coordinates, so S lies on the line.",
+      rationale: "A point lies on a parametric line only when one shared parameter reproduces every coordinate.",
+      steps: [
+        { label: "Use x", text: "Solve for the shared parameter.", math: String.raw`\[7=1+2t\Rightarrow t=3\]` },
+        { label: "Check y and z", text: "Use the same value of t.", math: String.raw`\[1-3=-2,\qquad 2+3=5\]` },
+        { label: "Conclude", text: "All coordinates agree.", math: String.raw`\[S\in L\]` },
+      ],
+    },
   ],
 };
 
@@ -758,7 +945,7 @@ const quizTwo: Assessment = {
   title: "Plane construction",
   description: "Work with normals, span vectors, and conditions for a unique plane.",
   mode: "quiz",
-  timeLimit: "9 min",
+  timeLimit: "15 min",
   questions: [
     {
       id: "q2-1",
@@ -795,6 +982,53 @@ const quizTwo: Assessment = {
       rationale: "Collinearity makes the two candidate span vectors dependent; their cross product is zero.",
       steps: [{ label: "Independence test", text: "For collinear A, B, C, AC=kAB.", math: String.raw`\[\overrightarrow{AB}\times\overrightarrow{AC}=\vec0\]` }],
     },
+    {
+      id: "q2-4",
+      prompt: String.raw`Which vector equation describes the plane through \(P(1,0,2)\) with spans \((1,1,0)\) and \((0,1,1)\)?`,
+      tags: ["K", "A"],
+      options: [
+        String.raw`\(\vec r=(1,0,2)+s(1,1,0)+t(0,1,1)\)`,
+        String.raw`\(\vec r=(1,1,0)+t(0,1,1)\)`,
+        String.raw`\(\vec r=(1,0,2)+s(1,1,0)\)`,
+        String.raw`\(\vec r=s(1,0,2)+t(1,1,0)\)`,
+      ],
+      correctIndex: 0,
+      rationale: "A plane needs one anchor and two independent spanning directions.",
+      steps: [{ label: "Use the plane template", text: "Insert the anchor and both spans.", math: String.raw`\[\vec r=\vec r_0+s\vec a+t\vec b\]` }],
+    },
+    {
+      id: "q2-5",
+      prompt: String.raw`What are the axis intercepts of \(2x+3y+6z=6\)?`,
+      tags: ["A"],
+      options: [
+        String.raw`\((3,0,0),(0,2,0),(0,0,1)\)`,
+        String.raw`\((2,0,0),(0,3,0),(0,0,6)\)`,
+        String.raw`\((6,0,0),(0,6,0),(0,0,6)\)`,
+        String.raw`\((1,0,0),(0,2,0),(0,0,3)\)`,
+      ],
+      correctIndex: 0,
+      rationale: "Set the other two coordinates to zero for each intercept.",
+      steps: [
+        { label: "Calculate each intercept", text: "Solve one variable at a time.", math: String.raw`\[x=3,\qquad y=2,\qquad z=1\]` },
+      ],
+    },
+    {
+      id: "q2-6",
+      kind: "written",
+      prompt: "Explain why two parallel span vectors cannot define a unique plane. Include the geometric meaning of their cross product.",
+      tags: ["T", "C"],
+      criteria: [
+        "States that parallel spans provide only one independent direction.",
+        "Identifies the cross product as the zero vector.",
+        "Explains why no unique normal or plane is produced.",
+      ],
+      sampleAnswer: "Parallel span vectors are scalar multiples, so they describe movement in only one independent direction. Their cross product is the zero vector, which cannot serve as a plane normal. Therefore the data determines a line of movement but not one unique plane.",
+      rationale: "A plane is two-dimensional and therefore requires two independent directions.",
+      steps: [
+        { label: "Identify dependence", text: "Parallel vectors are scalar multiples.", math: String.raw`\[\vec b=k\vec a\]` },
+        { label: "Use the cross product", text: "Dependent spans produce no non-zero normal.", math: String.raw`\[\vec a\times\vec b=\vec0\]` },
+      ],
+    },
   ],
 };
 
@@ -804,7 +1038,7 @@ const quizThree: Assessment = {
   title: "Intersections and distance",
   description: "Classify spatial relationships and calculate exact results.",
   mode: "quiz",
-  timeLimit: "10 min",
+  timeLimit: "18 min",
   questions: [
     {
       id: "q3-1",
@@ -839,6 +1073,46 @@ const quizThree: Assessment = {
         { label: "Distance", text: "Divide magnitudes.", math: String.raw`\[d=\frac{\sqrt{4+4+1}}{\sqrt{1+1}}=\frac3{\sqrt2}\]` },
       ],
     },
+    {
+      id: "q3-4",
+      prompt: "Which expression gives the distance from point P to a line through A with direction d in R³?",
+      tags: ["K"],
+      options: [
+        String.raw`\(\frac{\|\overrightarrow{AP}\times\vec d\|}{\|\vec d\|}\)`,
+        String.raw`\(\overrightarrow{AP}\cdot\vec d\)`,
+        String.raw`\(\|\overrightarrow{AP}+\vec d\|\)`,
+        String.raw`\(\frac{\|\vec d\|}{\|\overrightarrow{AP}\times\vec d\|}\)`,
+      ],
+      correctIndex: 0,
+      rationale: "The cross-product magnitude measures the parallelogram area. Dividing by the base length leaves the perpendicular height.",
+      steps: [{ label: "Area relation", text: "Area equals base times height.", math: String.raw`\[\|\overrightarrow{AP}\times\vec d\|=\|\vec d\|d\]` }],
+    },
+    {
+      id: "q3-5",
+      prompt: String.raw`What direction vector is parallel to the intersection of \(x+y+z=3\) and \(x-y+z=1\)?`,
+      tags: ["A", "T"],
+      options: [String.raw`\((-1,0,1)\)`, String.raw`\((1,1,1)\)`, String.raw`\((1,-1,1)\)`, String.raw`\((0,1,0)\)`],
+      correctIndex: 0,
+      rationale: "The intersection direction is perpendicular to both plane normals, so it is parallel to their cross product.",
+      steps: [{ label: "Cross the normals", text: "Use n₁=(1,1,1) and n₂=(1,-1,1).", math: String.raw`\[\vec n_1\times\vec n_2=(2,0,-2)\parallel(-1,0,1)\]` }],
+    },
+    {
+      id: "q3-6",
+      kind: "written",
+      prompt: String.raw`A line has direction \(\vec d=(1,-1,0)\), anchor \(A=(0,0,0)\), and the plane is \(x+y+z=2\). Classify the relationship and justify it without solving a full substitution system.`,
+      tags: ["T", "C"],
+      criteria: [
+        "Uses the plane normal n=(1,1,1).",
+        "Computes n dot d=0 and explains that the line direction is parallel to the plane.",
+        "Tests the anchor and concludes that the line is parallel and disjoint.",
+      ],
+      sampleAnswer: "The plane normal is n=(1,1,1). Since n dot d=1-1+0=0, the line direction is parallel to the plane. The anchor does not satisfy the plane because 0+0+0 is not 2. Therefore the line is parallel to the plane and has no intersection.",
+      rationale: "The dot product identifies parallel direction, while the anchor test distinguishes a contained line from a disjoint line.",
+      steps: [
+        { label: "Direction test", text: "Compare the normal and line direction.", math: String.raw`\[(1,1,1)\cdot(1,-1,0)=0\]` },
+        { label: "Anchor test", text: "Substitute A into the plane.", math: String.raw`\[0+0+0\ne2\]` },
+      ],
+    },
   ],
 };
 
@@ -848,9 +1122,9 @@ export const finalExam: Assessment = {
   id: "final-exam-assessment",
   number: "FINAL",
   title: "Lines and Planes comprehensive exam",
-  description: "Eight questions spanning representation, plane construction, systems, intersections, distance, and communication.",
+  description: "Twelve questions spanning representation, plane construction, systems, intersections, distance, and communication.",
   mode: "exam",
-  timeLimit: "35 min",
+  timeLimit: "50 min",
   questions: [
     {
       id: "fx-1",
@@ -955,6 +1229,71 @@ export const finalExam: Assessment = {
       rationale: "An identity means the equation is true for every parameter value, not just one.",
       steps: [{ label: "Interpret the identity", text: "No restriction remains on t.", math: String.raw`\[0=0\ \text{for all }t\in\mathbb R\Rightarrow L\subset\Pi\]` }],
     },
+    {
+      id: "fx-9",
+      prompt: String.raw`Which three points should be plotted first to sketch \(3x+2y+6z=6\) by intercepts?`,
+      tags: ["K", "A"],
+      options: [
+        String.raw`\((2,0,0),(0,3,0),(0,0,1)\)`,
+        String.raw`\((3,0,0),(0,2,0),(0,0,6)\)`,
+        String.raw`\((6,0,0),(0,6,0),(0,0,6)\)`,
+        String.raw`\((1,0,0),(0,1,0),(0,0,1)\)`,
+      ],
+      correctIndex: 0,
+      rationale: "Set the other two variables to zero for each axis intercept.",
+      steps: [
+        { label: "Find the intercepts", text: "Solve each one-variable equation.", math: String.raw`\[x=2,\qquad y=3,\qquad z=1\]` },
+      ],
+    },
+    {
+      id: "fx-10",
+      prompt: String.raw`Find the distance from \(P(4,1)\) to \(3x-4y+2=0\).`,
+      tags: ["A"],
+      options: [String.raw`\(2\)`, String.raw`\(\frac{10}{7}\)`, String.raw`\(\sqrt5\)`, String.raw`\(10\)`],
+      correctIndex: 0,
+      rationale: "Substitute the point into the numerator and divide by the magnitude of the normal.",
+      steps: [
+        { label: "Use the R² formula", text: "Evaluate the numerator and denominator.", math: String.raw`\[d=\frac{|3(4)-4(1)+2|}{\sqrt{3^2+(-4)^2}}=\frac{10}{5}=2\]` },
+      ],
+    },
+    {
+      id: "fx-11",
+      kind: "written",
+      prompt: String.raw`Two lines intersect at \(P=(1,0,2)\) and have directions \(\vec d_1=(1,1,0)\) and \(\vec d_2=(0,1,1)\). Construct a Cartesian equation of their plane and verify the result.`,
+      tags: ["A", "T", "C"],
+      criteria: [
+        "Uses the intersection point as the anchor.",
+        "Finds a non-zero normal with d₁ cross d₂.",
+        "Builds and simplifies the Cartesian equation.",
+        "Verifies the anchor and both directions.",
+      ],
+      sampleAnswer: "The lines provide two in-plane directions. Their cross product is (1,1,0) cross (0,1,1)=(1,-1,1), so a normal is n=(1,-1,1). Using P gives (x-1)-y+(z-2)=0, or x-y+z=3. The point P satisfies the equation, and the normal has dot product 0 with each line direction, so the plane is verified.",
+      rationale: "Two intersecting lines determine a plane when their direction vectors are not parallel.",
+      steps: [
+        { label: "Find the normal", text: "Cross the line directions.", math: String.raw`\[(1,1,0)\times(0,1,1)=(1,-1,1)\]` },
+        { label: "Use the intersection point", text: "Build point-normal form.", math: String.raw`\[(x-1)-y+(z-2)=0\Rightarrow x-y+z=3\]` },
+        { label: "Verify", text: "Check the anchor and perpendicularity.", math: String.raw`\[(1,-1,1)\cdot(1,1,0)=0,\quad(1,-1,1)\cdot(0,1,1)=0\]` },
+      ],
+    },
+    {
+      id: "fx-12",
+      kind: "written",
+      prompt: String.raw`A line \(\vec r=(0,0,0)+t(1,-1,0)\) is compared with the plane \(x+y+z=2\). Explain the relationship using both a vector test and a geometric conclusion.`,
+      tags: ["K", "T", "C"],
+      criteria: [
+        "Identifies the plane normal.",
+        "Uses the dot product to establish parallel direction.",
+        "Checks whether the line anchor lies in the plane.",
+        "States that the line and plane have no intersection.",
+      ],
+      sampleAnswer: "The plane normal is n=(1,1,1). The dot product n dot d is 1-1+0=0, so the line direction is parallel to the plane. The anchor (0,0,0) does not satisfy x+y+z=2. Therefore the entire line is outside the plane, the line is parallel to it, and there are no intersection points.",
+      rationale: "A zero normal-direction dot product gives parallel direction. The anchor test then separates a contained line from a disjoint one.",
+      steps: [
+        { label: "Vector test", text: "Use the plane normal and line direction.", math: String.raw`\[(1,1,1)\cdot(1,-1,0)=0\]` },
+        { label: "Anchor test", text: "Evaluate the plane at the origin.", math: String.raw`\[0+0+0\ne2\]` },
+        { label: "Conclusion", text: "The line is parallel and disjoint.", math: String.raw`\[L\parallel\Pi,\qquad L\cap\Pi=\varnothing\]` },
+      ],
+    },
   ],
 };
 
@@ -984,6 +1323,15 @@ export const formulaGroups: FormulaGroup[] = [
       { label: "Two-plane direction", math: String.raw`\(\vec d=\vec n_1\times\vec n_2\)`, note: "non-parallel normals" },
       { label: "Point-line R²", math: String.raw`\(d=\frac{|Ax_P+By_P+C|}{\sqrt{A^2+B^2}}\)`, note: "scalar line form" },
       { label: "Point-line R³", math: String.raw`\(d=\frac{\|\overrightarrow{AP}\times\vec d\|}{\|\vec d\|}\)`, note: "A lies on line" },
+    ],
+  },
+  {
+    title: "Angles and system checks",
+    formulas: [
+      { label: "Line-plane angle", math: String.raw`\(\sin\theta=\frac{|\vec d\cdot\vec n|}{\|\vec d\|\|\vec n\|}\)`, note: "acute angle from line to plane" },
+      { label: "Plane-plane angle", math: String.raw`\(\cos\theta=\frac{|\vec n_1\cdot\vec n_2|}{\|\vec n_1\|\|\vec n_2\|}\)`, note: "acute angle between normals" },
+      { label: "Point-plane distance", math: String.raw`\(d=\frac{|Ax_P+By_P+Cz_P+D|}{\sqrt{A^2+B^2+C^2}}\)`, note: "plane in Cartesian form" },
+      { label: "Consistency", math: String.raw`\(0=0\Rightarrow\text{free variable},\qquad 0=c\ne0\Rightarrow\text{no solution}\)`, note: "interpret the reduced system geometrically" },
     ],
   },
 ];
