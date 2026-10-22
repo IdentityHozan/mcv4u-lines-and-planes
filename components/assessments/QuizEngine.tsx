@@ -1,6 +1,5 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MathJaxRenderer } from "@/components/ui/MathJaxRenderer";
 import type { Assessment, AssessmentQuestion } from "@/data/linesAndPlanesData";
@@ -13,224 +12,305 @@ type QuizEngineProps = {
 };
 
 type AnswerValue = number | string;
+type Attempt = {
+  signature: string;
+  currentIndex: number;
+  answers: Record<string, AnswerValue>;
+  revealed: string[];
+  writtenMarks: Record<string, number>;
+  submitted: boolean;
+};
 
 function isWritten(question: AssessmentQuestion): question is Extract<AssessmentQuestion, { kind: "written" }> {
   return question.kind === "written";
+}
+
+export function questionMarks(question: AssessmentQuestion) {
+  return question.marks ?? (isWritten(question) ? question.criteria.length : 1);
+}
+
+export function assessmentSignature(assessment: Assessment) {
+  return JSON.stringify(assessment.questions.map((question) => ({
+    id: question.id,
+    prompt: question.prompt,
+    marks: questionMarks(question),
+    answer: isWritten(question) ? question.sampleAnswer : [question.correctIndex, ...question.options],
+  })));
 }
 
 export function QuizEngine({ assessment, onComplete }: QuizEngineProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
   const [revealed, setRevealed] = useState<string[]>([]);
-  const [writtenReviews, setWrittenReviews] = useState<Record<string, boolean>>({});
+  const [writtenMarks, setWrittenMarks] = useState<Record<string, number>>({});
   const [submitted, setSubmitted] = useState(false);
-  const completionReported = useRef(false);
+  const [hydrated, setHydrated] = useState(false);
+  const [confirmSubmit, setConfirmSubmit] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [notice, setNotice] = useState("");
+  const reportedResult = useRef("");
+  const questionRef = useRef<HTMLDivElement>(null);
+  const signature = useMemo(() => assessmentSignature(assessment), [assessment]);
+  const storageKey = `mcv4u-assessment-attempt-v4-${assessment.id}`;
+  const assessmentKind = assessment.kind ?? (assessment.mode === "quiz" ? "quiz" : "exam");
+  const label = assessmentKind === "exam" ? "Final examination" : `${assessmentKind === "test" ? "Unit test" : "Practice quiz"} ${Number(assessment.number) || assessment.number}`;
+
+  useEffect(() => {
+    let saved: Partial<Attempt> | undefined;
+    try {
+      const stored = window.localStorage.getItem(storageKey);
+      if (stored) saved = JSON.parse(stored) as Partial<Attempt>;
+    } catch {
+      // Storage restrictions must not prevent students from using an assessment.
+    }
+    queueMicrotask(() => {
+      if (saved?.signature === signature) {
+        const safeAnswers: Record<string, AnswerValue> = {};
+        const safeMarks: Record<string, number> = {};
+        assessment.questions.forEach((question) => {
+          const answer = saved?.answers?.[question.id];
+          if (isWritten(question)) {
+            if (typeof answer === "string") safeAnswers[question.id] = answer;
+            const mark = saved?.writtenMarks?.[question.id];
+            if (typeof mark === "number" && Number.isInteger(mark) && mark >= 0 && mark <= questionMarks(question)) safeMarks[question.id] = mark;
+          } else if (typeof answer === "number" && Number.isInteger(answer) && answer >= 0 && answer < question.options.length) {
+            safeAnswers[question.id] = answer;
+          }
+        });
+        const answeredIds = assessment.questions.filter((question) => isWritten(question)
+          ? typeof safeAnswers[question.id] === "string" && String(safeAnswers[question.id]).trim().length > 0
+          : typeof safeAnswers[question.id] === "number").map((question) => question.id);
+        setAnswers(safeAnswers);
+        setWrittenMarks(safeMarks);
+        setRevealed(Array.isArray(saved.revealed) ? saved.revealed.filter((id) => answeredIds.includes(id)) : []);
+        setSubmitted(saved.submitted === true && answeredIds.length === assessment.questions.length);
+        setCurrentIndex(typeof saved.currentIndex === "number" && Number.isInteger(saved.currentIndex)
+          ? Math.max(0, Math.min(saved.currentIndex, assessment.questions.length - 1)) : 0);
+      }
+      setHydrated(true);
+    });
+  }, [assessment.questions, signature, storageKey]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify({ signature, currentIndex, answers, revealed, writtenMarks, submitted } satisfies Attempt));
+    } catch {
+      // Continue without persistence in private or storage-restricted browsers.
+    }
+  }, [answers, currentIndex, hydrated, revealed, signature, storageKey, submitted, writtenMarks]);
 
   const current = assessment.questions[currentIndex];
   const written = isWritten(current);
   const selectedChoice = typeof answers[current.id] === "number" ? answers[current.id] as number : undefined;
   const writtenResponse = typeof answers[current.id] === "string" ? answers[current.id] as string : "";
   const isRevealed = revealed.includes(current.id) || submitted;
-
-  const hasResponse = (question: AssessmentQuestion) => {
-    const value = answers[question.id];
-    return isWritten(question) ? typeof value === "string" && value.trim().length >= 5 : typeof value === "number";
-  };
-
+  const hasResponse = (question: AssessmentQuestion) => isWritten(question)
+    ? typeof answers[question.id] === "string" && String(answers[question.id]).trim().length > 0
+    : typeof answers[question.id] === "number";
   const answeredCount = assessment.questions.filter(hasResponse).length;
-  const writtenQuestions = useMemo(() => assessment.questions.filter(isWritten), [assessment.questions]);
-  const reviewedWrittenCount = writtenQuestions.filter((question) => writtenReviews[question.id] !== undefined).length;
-  const score = assessment.questions.reduce((total, question) => {
-    if (isWritten(question)) return total + (writtenReviews[question.id] ? 1 : 0);
-    return total + (answers[question.id] === question.correctIndex ? 1 : 0);
-  }, 0);
-
+  const writtenQuestions = assessment.questions.filter(isWritten);
+  const autoQuestions = assessment.questions.filter((question) => !isWritten(question));
+  const totalMarks = assessment.questions.reduce((total, question) => total + questionMarks(question), 0);
+  const autoTotal = autoQuestions.reduce((total, question) => total + questionMarks(question), 0);
+  const autoScore = autoQuestions.reduce((total, question) => total + (!isWritten(question) && answers[question.id] === question.correctIndex ? questionMarks(question) : 0), 0);
+  const writtenTotal = writtenQuestions.reduce((total, question) => total + questionMarks(question), 0);
+  const writtenScore = writtenQuestions.reduce((total, question) => total + (writtenMarks[question.id] ?? 0), 0);
+  const reviewedWrittenCount = writtenQuestions.filter((question) => writtenMarks[question.id] !== undefined).length;
   const complete = assessment.mode === "quiz"
-    ? assessment.questions.every((question) => revealed.includes(question.id) && (!isWritten(question) || writtenReviews[question.id] !== undefined))
+    ? assessment.questions.every((question) => revealed.includes(question.id) && (!isWritten(question) || writtenMarks[question.id] !== undefined))
     : submitted && reviewedWrittenCount === writtenQuestions.length;
+  const score = autoScore + writtenScore;
 
   useEffect(() => {
-    if (!complete || completionReported.current) return;
-    completionReported.current = true;
-    onComplete(score, assessment.questions.length);
-  }, [assessment.questions.length, complete, onComplete, score]);
+    const resultKey = `${score}/${totalMarks}`;
+    if (!hydrated || !complete || reportedResult.current === resultKey) return;
+    reportedResult.current = resultKey;
+    onComplete(score, totalMarks);
+  }, [complete, hydrated, onComplete, score, totalMarks]);
 
-  const choose = (index: number) => {
-    if (isRevealed || written) return;
-    setAnswers((currentAnswers) => ({ ...currentAnswers, [current.id]: index }));
-  };
-
-  const updateWritten = (value: string) => {
-    if (isRevealed || !written) return;
-    setAnswers((currentAnswers) => ({ ...currentAnswers, [current.id]: value }));
+  const navigate = (index: number) => {
+    setCurrentIndex(index);
+    setNotice("");
+    setConfirmSubmit(false);
+    questionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const revealCurrent = () => {
-    if (!hasResponse(current)) return;
+    if (!hasResponse(current)) {
+      setNotice(written ? "Write your response before viewing the marking guidance." : "Select one answer before checking this question.");
+      return;
+    }
+    setNotice("");
     setRevealed((items) => items.includes(current.id) ? items : [...items, current.id]);
   };
 
-  const reviewWritten = (meetsCriteria: boolean) => {
-    if (!written) return;
-    setWrittenReviews((currentReviews) => ({ ...currentReviews, [current.id]: meetsCriteria }));
-  };
-
-  const currentReady = assessment.mode === "exam"
-    ? hasResponse(current) || submitted
-    : isRevealed && (!written || writtenReviews[current.id] !== undefined);
-
-  const next = () => {
-    if (!currentReady) return;
-    setCurrentIndex((index) => Math.min(assessment.questions.length - 1, index + 1));
-  };
-
-  const submitExam = () => {
-    if (answeredCount !== assessment.questions.length) return;
-    setSubmitted(true);
+  const requestSubmit = () => {
+    const missing = assessment.questions.flatMap((question, index) => hasResponse(question) ? [] : [index + 1]);
+    if (missing.length > 0) {
+      setNotice(`Answer every question before submitting. Unanswered questions: ${missing.join(", ")}.`);
+      setConfirmSubmit(false);
+      return;
+    }
+    setNotice("");
+    setConfirmSubmit(true);
   };
 
   const reset = () => {
     setCurrentIndex(0);
     setAnswers({});
     setRevealed([]);
-    setWrittenReviews({});
+    setWrittenMarks({});
     setSubmitted(false);
-    completionReported.current = false;
+    setConfirmSubmit(false);
+    setConfirmReset(false);
+    setNotice("");
+    reportedResult.current = "";
   };
 
+  const instructions = assessment.instructions ?? [
+    "Give exact values unless a question asks for a decimal approximation.",
+    "For written responses, show your method, define parameters, and state a complete conclusion.",
+    assessment.mode === "quiz" ? "Check each response when you are ready. Checked answers cannot be changed during this attempt." : "You may move freely between questions. Solutions appear only after you submit the complete paper.",
+    "Written responses are self-assessed using the marking criteria. They are not automatically graded.",
+  ];
+  const paperButton = "min-h-12 border border-slate-400 px-5 py-3 text-base font-semibold text-slate-800 transition hover:border-slate-700 hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 disabled:cursor-not-allowed disabled:opacity-40";
+
   return (
-    <div className="min-h-[680px] p-5 sm:p-8">
-      <div className="flex flex-col justify-between gap-5 border-b border-white/10 pb-6 sm:flex-row sm:items-start">
-        <div>
-          <div className="flex flex-wrap gap-2">
-            <span className="micro-label text-sky-300">{assessment.mode === "exam" ? "Final assessment" : `Quiz ${assessment.number}`}</span>
-            <span className="border border-white/10 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-500">{assessment.timeLimit}</span>
-            <span className="border border-white/10 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-500">{written ? "Written response" : "Multiple choice"}</span>
+    <section className="assessment-paper border border-white/15 bg-[#f7f6f2] text-slate-900" aria-label={assessment.title}>
+      <header className="border-b border-slate-300 p-6 sm:p-10">
+        <p className="text-sm font-semibold uppercase tracking-[0.12em] text-sky-800">MCV4U Lines and Planes</p>
+        <div className="mt-4 flex flex-wrap items-start justify-between gap-6">
+          <div className="max-w-3xl">
+            <p className="text-base text-slate-600">{label}</p>
+            <h2 className="mt-2 text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">{assessment.title}</h2>
+            <p className="mt-4 text-base leading-7 text-slate-700">{assessment.description}</p>
           </div>
-          <h3 className="mt-4 text-2xl font-semibold tracking-tight">{assessment.title}</h3>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-500">{assessment.description}</p>
-          {submitted && writtenQuestions.length > 0 && reviewedWrittenCount < writtenQuestions.length && (
-            <p className="mt-3 text-sm font-semibold text-sky-300">Review the written responses to complete your score. {reviewedWrittenCount} of {writtenQuestions.length} reviewed.</p>
-          )}
+          <dl className="grid min-w-48 grid-cols-2 gap-x-6 gap-y-3 text-base">
+            <div><dt className="text-sm text-slate-600">Suggested time</dt><dd className="mt-1 font-semibold">{assessment.timeLimit}</dd></div>
+            <div><dt className="text-sm text-slate-600">Total marks</dt><dd className="mt-1 font-semibold">{totalMarks}</dd></div>
+            <div><dt className="text-sm text-slate-600">Questions</dt><dd className="mt-1 font-semibold">{assessment.questions.length}</dd></div>
+            <div><dt className="text-sm text-slate-600">Answered</dt><dd className="mt-1 font-semibold">{answeredCount} of {assessment.questions.length}</dd></div>
+          </dl>
         </div>
-        <div className="shrink-0 text-right">
-          <p className="font-mono text-sm text-zinc-300">Question {currentIndex + 1} of {assessment.questions.length}</p>
-          <p className="mt-1 text-xs text-zinc-600">{answeredCount} answered</p>
+        <details className="mt-7 border-t border-slate-300 pt-5" open>
+          <summary className="cursor-pointer text-base font-semibold">Instructions</summary>
+          <ol className="mt-4 list-decimal space-y-2 pl-5 text-base leading-7 text-slate-700">
+            {instructions.map((instruction) => <li key={instruction}><MathJaxRenderer math={instruction} /></li>)}
+          </ol>
+        </details>
+      </header>
+
+      <div className="border-b border-slate-300 bg-white/50 p-6 sm:px-10">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-base font-semibold">Question navigation</p>
+          <p className="text-sm text-slate-600">Filled boxes have a response. Select any number to review it.</p>
         </div>
+        <nav className="mt-4 flex flex-wrap gap-2" aria-label="Assessment questions">
+          {assessment.questions.map((question, index) => (
+            <button type="button" key={question.id} onClick={() => navigate(index)} aria-label={`Question ${index + 1}${hasResponse(question) ? ", answered" : ", unanswered"}`} aria-current={currentIndex === index ? "step" : undefined}
+              className={`grid h-11 min-w-11 place-items-center border px-2 text-base font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 ${currentIndex === index ? "border-slate-900 bg-slate-900 text-white" : hasResponse(question) ? "border-sky-700 bg-sky-100 text-sky-900 hover:bg-sky-200" : "border-slate-400 bg-white text-slate-700 hover:border-slate-700"}`}>
+              {index + 1}
+            </button>
+          ))}
+        </nav>
       </div>
 
-      <div className="mt-4 flex gap-1" aria-label="Question progress">
-        {assessment.questions.map((question, index) => {
-          const answered = hasResponse(question);
-          const checked = revealed.includes(question.id) || submitted;
-          const reviewed = !isWritten(question) || writtenReviews[question.id] !== undefined;
-          const correct = isWritten(question) ? writtenReviews[question.id] === true : answers[question.id] === question.correctIndex;
-          return (
-            <button
-              type="button"
-              key={question.id}
-              onClick={() => setCurrentIndex(index)}
-              className={`h-1.5 flex-1 transition ${checked && reviewed ? (correct ? "bg-sky-300" : "bg-zinc-500") : answered ? "bg-sky-400/35" : "bg-white/10"}`}
-              aria-label={`Go to question ${index + 1}`}
-            />
-          );
-        })}
-      </div>
-
-      <AnimatePresence mode="wait">
-        <motion.div key={current.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25 }} className="mt-8">
-          <div className="flex flex-wrap gap-2">{current.tags.map((tag) => <KATCBadge key={tag} category={tag} showLabel />)}</div>
-          <MathJaxRenderer math={current.prompt} className="mt-5 max-w-3xl text-lg font-medium leading-8 text-zinc-100" />
-
-          {current.kind !== "written" && (
-            <div className="mt-7 grid gap-3 sm:grid-cols-2">
-              {current.options.map((option, index) => {
-                const chosen = selectedChoice === index;
-                const correct = current.correctIndex === index;
-                const wrongChosen = isRevealed && chosen && !correct;
-                return (
-                  <button
-                    type="button"
-                    key={`${current.id}-${index}`}
-                    onClick={() => choose(index)}
-                    disabled={isRevealed}
-                    className={`flex min-h-20 items-center gap-4 border p-4 text-left transition ${isRevealed && correct ? "border-sky-400/55 bg-sky-400/[0.08]" : wrongChosen ? "border-white/30 bg-white/[0.055]" : chosen ? "border-sky-400/40 bg-sky-400/[0.05]" : "border-white/10 bg-[#111] hover:border-white/25"}`}
-                  >
-                    <span className={`grid h-7 w-7 shrink-0 place-items-center border font-mono text-[10px] ${chosen ? "border-sky-400/50 text-sky-300" : "border-white/10 text-zinc-600"}`}>{String.fromCharCode(65 + index)}</span>
-                    <MathJaxRenderer math={option} className="text-sm leading-6 text-zinc-300" />
-                    {isRevealed && correct && <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide text-sky-300">Correct</span>}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {current.kind === "written" && (
-            <div className="mt-7">
-              <label htmlFor={`response-${current.id}`} className="text-sm font-semibold text-zinc-200">Your response</label>
-              <textarea
-                id={`response-${current.id}`}
-                value={writtenResponse}
-                onChange={(event) => updateWritten(event.target.value)}
-                disabled={isRevealed}
-                rows={7}
-                placeholder="Show your reasoning and state a complete conclusion."
-                className="mt-3 w-full resize-y border border-white/15 bg-[#0b0b0b] p-4 text-sm leading-7 text-zinc-200 outline-none transition focus:border-sky-400/50 disabled:text-zinc-400"
-              />
-              <p className="mt-2 text-xs text-zinc-600">{writtenResponse.trim().length} characters</p>
-            </div>
-          )}
-
-          {isRevealed && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-6 border border-white/10 bg-[#0b0b0b] p-5">
-              {current.kind !== "written" && (
-                <>
-                  <p className={`text-sm font-semibold ${selectedChoice === current.correctIndex ? "text-sky-300" : "text-zinc-200"}`}>{selectedChoice === current.correctIndex ? "Correct reasoning" : "Review the method"}</p>
-                  <p className="mt-2 text-sm leading-6 text-zinc-400">{current.rationale}</p>
-                </>
-              )}
-
-              {current.kind === "written" && (
-                <>
-                  <p className="text-sm font-semibold text-zinc-100">Compare your answer with the criteria</p>
-                  <ol className="mt-4 space-y-3">
-                    {current.criteria.map((criterion, index) => <li key={criterion} className="grid grid-cols-[28px_1fr] gap-3 text-sm leading-6 text-zinc-400"><span className="font-mono text-xs text-sky-300">{String(index + 1).padStart(2, "0")}</span><span>{criterion}</span></li>)}
-                  </ol>
-                  <div className="mt-5 border border-sky-400/20 bg-sky-400/[0.04] p-4">
-                    <p className="micro-label text-sky-300">Student sample</p>
-                    <MathJaxRenderer math={current.sampleAnswer} className="mt-3 text-sm leading-7 text-zinc-300" />
-                  </div>
-                  <p className="mt-5 text-sm leading-6 text-zinc-400">{current.rationale}</p>
-                  <div className="mt-5 grid gap-2 sm:grid-cols-2">
-                    <button type="button" onClick={() => reviewWritten(true)} className={`min-h-11 border px-4 text-sm font-semibold ${writtenReviews[current.id] === true ? "border-sky-400/50 bg-sky-400/[0.09] text-sky-200" : "border-white/15 text-zinc-300"}`}>My response meets the criteria</button>
-                    <button type="button" onClick={() => reviewWritten(false)} className={`min-h-11 border px-4 text-sm font-semibold ${writtenReviews[current.id] === false ? "border-white/35 bg-white/[0.055] text-zinc-100" : "border-white/15 text-zinc-400"}`}>I need to revise</button>
-                  </div>
-                </>
-              )}
-
-              <div className="mt-5"><StepByStepSolution steps={current.steps} defaultOpen title="Full solution" /></div>
-            </motion.div>
-          )}
-        </motion.div>
-      </AnimatePresence>
-
-      <div className="mt-8 flex flex-col-reverse justify-between gap-3 border-t border-white/10 pt-5 sm:flex-row">
-        <button type="button" onClick={() => setCurrentIndex((index) => Math.max(0, index - 1))} disabled={currentIndex === 0} className="min-h-11 border border-white/10 px-4 text-sm text-zinc-500 enabled:hover:border-white/25 enabled:hover:text-zinc-200 disabled:opacity-30">Previous question</button>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          {assessment.mode === "quiz" && !isRevealed && <button type="button" onClick={revealCurrent} disabled={!hasResponse(current)} className="min-h-11 bg-sky-300 px-5 text-sm font-semibold text-black enabled:hover:bg-sky-200 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-600">{written ? "Compare response" : "Check answer"}</button>}
-          {assessment.mode === "exam" && currentIndex === assessment.questions.length - 1 && !submitted && <button type="button" onClick={submitExam} disabled={answeredCount !== assessment.questions.length} className="min-h-11 bg-sky-300 px-5 text-sm font-semibold text-black enabled:hover:bg-sky-200 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-600">Submit exam</button>}
-          {currentIndex < assessment.questions.length - 1 && <button type="button" onClick={next} disabled={!currentReady} className="min-h-11 border border-white/15 px-5 text-sm font-semibold text-zinc-300 enabled:hover:border-sky-400/40 enabled:hover:text-sky-300 disabled:opacity-30">Next question</button>}
-        </div>
-      </div>
-
-      {complete && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-8 border border-sky-400/25 bg-sky-400/[0.055] p-6">
-          <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
-            <div><p className="micro-label text-sky-300">Score summary</p><p className="mt-2 text-4xl font-semibold tracking-tight">{score} of {assessment.questions.length}</p><p className="mt-2 text-sm text-zinc-500">{Math.round((score / assessment.questions.length) * 100)}%. Review any missed solutions before retaking.</p></div>
-            <button type="button" onClick={reset} className="min-h-11 border border-sky-400/30 px-4 text-sm font-semibold text-sky-300 hover:bg-sky-400/10">Retake assessment</button>
+      <div ref={questionRef} className="scroll-mt-28 p-6 sm:p-10">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            {current.section && <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-sky-800">{current.section}</p>}
+            <h3 className="text-2xl font-semibold">Question {currentIndex + 1}</h3>
+            <p className="mt-1 text-base text-slate-600">{written ? "Written response" : "Multiple choice"}</p>
           </div>
-        </motion.div>
-      )}
-    </div>
+          <p className="text-base font-semibold">[{questionMarks(current)} {questionMarks(current) === 1 ? "mark" : "marks"}]</p>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">{current.tags.map((tag) => <KATCBadge key={tag} category={tag} showLabel appearance="paper" />)}</div>
+        <MathJaxRenderer math={current.prompt} className="mt-7 max-w-none text-lg leading-9 text-slate-900" />
+
+        {current.kind !== "written" ? (
+          <div className="mt-7 space-y-3" role="radiogroup" aria-label={`Question ${currentIndex + 1} answer choices`}>
+            {current.options.map((option, index) => {
+              const chosen = selectedChoice === index;
+              const correct = current.correctIndex === index;
+              return (
+                <button type="button" role="radio" aria-checked={chosen} key={`${current.id}-${index}`} onClick={() => { if (!isRevealed) setAnswers((prior) => ({ ...prior, [current.id]: index })); }} disabled={isRevealed}
+                  className={`flex min-h-16 w-full items-start gap-4 border p-4 text-left text-base transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 sm:p-5 ${isRevealed && correct ? "border-sky-700 bg-sky-50" : isRevealed && chosen ? "border-amber-700 bg-amber-50" : chosen ? "border-sky-700 bg-sky-50" : "border-slate-300 bg-white enabled:hover:border-slate-600"}`}>
+                  <span className={`grid h-8 w-8 shrink-0 place-items-center border text-base font-semibold ${chosen ? "border-sky-800 bg-sky-800 text-white" : "border-slate-400 text-slate-700"}`}>{String.fromCharCode(65 + index)}</span>
+                  <MathJaxRenderer math={option} className="min-w-0 flex-1 pt-0.5 text-base leading-7 text-slate-900 sm:text-lg" />
+                  {isRevealed && correct && <span className="hidden shrink-0 pt-1 text-sm font-semibold text-sky-800 sm:block">Correct answer</span>}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="mt-7">
+            <label htmlFor={`response-${current.id}`} className="text-base font-semibold">Your response and working</label>
+            <p className="mt-2 text-base leading-7 text-slate-600">Show each step and explain your conclusion. You may type plain text or LaTeX, or record your working on paper and summarise it here.</p>
+            <textarea id={`response-${current.id}`} value={writtenResponse} onChange={(event) => { if (!isRevealed) setAnswers((prior) => ({ ...prior, [current.id]: event.target.value })); }} disabled={isRevealed} rows={9} placeholder="Write your method and conclusion here." className="mt-4 w-full resize-y border border-slate-400 bg-white p-5 text-base leading-8 text-slate-900 outline-none transition focus:border-sky-800 focus:ring-1 focus:ring-sky-800 disabled:bg-slate-100 disabled:text-slate-700" />
+            {writtenResponse.trim() && <details className="mt-3 text-base"><summary className="cursor-pointer font-medium text-sky-800">Preview your response</summary><MathJaxRenderer math={writtenResponse} className="mt-3 whitespace-pre-wrap border border-slate-300 bg-white p-4 leading-8" /></details>}
+          </div>
+        )}
+
+        {isRevealed && (
+          <div className="mt-8 border-t-2 border-slate-400 pt-7">
+            {current.kind !== "written" ? (
+              <>
+                <h4 className="text-lg font-semibold text-slate-900">{selectedChoice === current.correctIndex ? "Correct answer" : `Answer: ${String.fromCharCode(65 + current.correctIndex)}`}</h4>
+                <p className="mt-1 text-base text-slate-600">Automatically marked: {selectedChoice === current.correctIndex ? questionMarks(current) : 0} / {questionMarks(current)}</p>
+                <MathJaxRenderer math={current.rationale} className="mt-4 text-base leading-8 text-slate-700" />
+              </>
+            ) : (
+              <>
+                <h4 className="text-xl font-semibold">Marking guidance</h4>
+                <p className="mt-2 text-base leading-7 text-slate-700">Assess your response against each criterion. Award partial marks for correct work. This is a self-assessment, not an automatic grade.</p>
+                <ol className="mt-5 list-decimal space-y-3 pl-6 text-base leading-8 text-slate-800">{current.criteria.map((criterion, index) => <li key={`${current.id}-criterion-${index}`}><MathJaxRenderer math={criterion} /></li>)}</ol>
+                <div className="mt-6 border-l-4 border-sky-800 bg-white p-5 sm:p-6"><h5 className="text-base font-semibold text-sky-900">Model response</h5><MathJaxRenderer math={current.sampleAnswer} className="mt-3 text-base leading-8 text-slate-800" /></div>
+                <MathJaxRenderer math={current.rationale} className="mt-5 text-base leading-8 text-slate-700" />
+                <fieldset className="mt-6 border border-slate-300 bg-white p-5">
+                  <legend className="px-2 text-base font-semibold">Your self-assessed mark</legend>
+                  <p className="text-base leading-7 text-slate-600">Select a mark out of {questionMarks(current)} using the criteria above. A teacher may award a different mark.</p>
+                  <div className="mt-4 flex flex-wrap gap-2">{Array.from({ length: questionMarks(current) + 1 }, (_, mark) => <button key={mark} type="button" aria-pressed={writtenMarks[current.id] === mark} onClick={() => setWrittenMarks((prior) => ({ ...prior, [current.id]: mark }))} className={`h-12 min-w-12 border px-3 text-base font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700 ${writtenMarks[current.id] === mark ? "border-sky-800 bg-sky-800 text-white" : "border-slate-400 bg-white text-slate-800 hover:bg-slate-100"}`}>{mark}</button>)}</div>
+                </fieldset>
+              </>
+            )}
+            <div className="mt-6"><StepByStepSolution steps={current.steps} defaultOpen title="Worked solution" appearance="paper" /></div>
+          </div>
+        )}
+
+        <div className="mt-8 flex flex-wrap justify-between gap-3 border-t border-slate-300 pt-6">
+          <button type="button" onClick={() => navigate(currentIndex - 1)} disabled={currentIndex === 0} className={paperButton}>Previous question</button>
+          <div className="flex flex-wrap gap-3">
+            {assessment.mode === "quiz" && !isRevealed && <button type="button" onClick={revealCurrent} className="min-h-12 bg-sky-800 px-6 py-3 text-base font-semibold text-white hover:bg-sky-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700">{written ? "View marking guidance" : "Check answer"}</button>}
+            {currentIndex < assessment.questions.length - 1 && <button type="button" onClick={() => navigate(currentIndex + 1)} className={paperButton}>Next question</button>}
+          </div>
+        </div>
+        {notice && <p role="alert" className="mt-5 border border-amber-700 bg-amber-50 p-4 text-base leading-7 text-amber-950">{notice}</p>}
+
+        {assessment.mode === "exam" && !submitted && (
+          <div className="mt-8 border border-slate-300 bg-white p-5 sm:p-6">
+            <h4 className="text-lg font-semibold">Submit your {assessmentKind === "test" ? "test" : "examination"}</h4>
+            <p className="mt-2 text-base leading-7 text-slate-600">{answeredCount} of {assessment.questions.length} questions answered. Check your work before submitting. Your answers will then be locked and solutions will become available.</p>
+            {confirmSubmit ? <div className="mt-5" role="group" aria-label="Confirm submission"><p className="text-base font-semibold">Are you ready to submit? You cannot edit this attempt afterwards.</p><div className="mt-4 flex flex-wrap gap-3"><button type="button" onClick={() => { setSubmitted(true); setConfirmSubmit(false); setCurrentIndex(0); questionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }} className="min-h-12 bg-sky-800 px-6 py-3 text-base font-semibold text-white hover:bg-sky-900">Confirm submission</button><button type="button" onClick={() => setConfirmSubmit(false)} className={paperButton}>Continue reviewing</button></div></div> : <button type="button" onClick={requestSubmit} className="mt-5 min-h-12 bg-sky-800 px-6 py-3 text-base font-semibold text-white hover:bg-sky-900">Submit {assessmentKind === "test" ? "test" : "examination"}</button>}
+          </div>
+        )}
+
+        {(submitted || complete) && (
+          <section className="mt-8 border-t-2 border-slate-800 pt-6" aria-label="Results summary">
+            <h4 className="text-2xl font-semibold">{complete ? "Assessment summary" : "Submission received"}</h4>
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <div className="border border-slate-300 bg-white p-5"><p className="text-base text-slate-600">Automatically marked multiple choice</p><p className="mt-2 text-3xl font-semibold">{autoScore} / {autoTotal}</p></div>
+              <div className="border border-slate-300 bg-white p-5"><p className="text-base text-slate-600">Self-assessed written responses</p><p className="mt-2 text-3xl font-semibold">{writtenScore} / {writtenTotal}</p><p className="mt-2 text-sm text-slate-600">{reviewedWrittenCount} of {writtenQuestions.length} reviewed</p></div>
+            </div>
+            {complete ? <p className="mt-5 text-base leading-7 text-slate-800">Practice result: <strong>{score} / {totalMarks} ({Math.round(score / totalMarks * 100)}%)</strong>. This includes your self-assessed written marks and is not a teacher-awarded grade.</p> : <p className="mt-5 text-base leading-7 text-slate-800">Use the numbered navigation to review and self-assess every written response. Your combined practice result will appear when all written responses have a mark.</p>}
+          </section>
+        )}
+
+        <div className="mt-8 border-t border-slate-300 pt-5">
+          {confirmReset ? <div><p className="text-base text-slate-700">Start a new attempt? Your current responses and self-assessed marks will be cleared.</p><div className="mt-3 flex flex-wrap gap-3"><button type="button" onClick={reset} className={paperButton}>Start new attempt</button><button type="button" onClick={() => setConfirmReset(false)} className={paperButton}>Keep current attempt</button></div></div> : <button type="button" onClick={() => setConfirmReset(true)} className="min-h-11 text-base font-medium text-slate-600 underline underline-offset-4 hover:text-slate-900">{complete ? "Retake assessment" : "Restart this attempt"}</button>}
+          <p className="mt-4 text-sm leading-6 text-slate-600">Your attempt is saved on this browser when browser storage is available.</p>
+        </div>
+      </div>
+    </section>
   );
 }

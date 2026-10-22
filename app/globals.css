@@ -199,6 +199,8 @@ a {
 
 .math-content {
   min-height: 1.45em;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .math-content[data-ready="false"] {
@@ -216,6 +218,10 @@ a {
   top: 0;
 }
 
+.assessment-paper .math-content[data-ready="false"]::after {
+  color: #475569;
+}
+
 .math-content mjx-container {
   color: inherit;
   margin: 0 !important;
@@ -223,6 +229,11 @@ a {
   overflow-x: auto;
   overflow-y: hidden;
   padding-block: 0.15rem;
+  white-space: normal;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
 }
 
 .range-input {

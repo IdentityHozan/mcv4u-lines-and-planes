@@ -6,12 +6,14 @@ import { useState } from "react";
 
 const navigation = [
   { href: "/", label: "Home" },
-  { href: "/lessons", label: "Lessons" },
+  { href: "/lessons", label: "Lessons & videos" },
   { href: "/visualizer", label: "Visualizer" },
   { href: "/calculator", label: "Calculator" },
   { href: "/practice", label: "Practice" },
-  { href: "/assessments", label: "Assessments" },
-  { href: "/admin", label: "Admin" },
+  { href: "/assessments", label: "Quizzes" },
+  { href: "/tests", label: "Tests" },
+  { href: "/exam", label: "Exam" },
+  { href: "/resources", label: "Resources" },
 ];
 
 function isCurrent(pathname: string, href: string) {

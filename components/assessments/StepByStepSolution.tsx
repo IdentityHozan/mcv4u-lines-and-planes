@@ -1,4 +1,3 @@
-import { Accordion } from "@/components/ui/Accordion";
 import { MathJaxRenderer } from "@/components/ui/MathJaxRenderer";
 import type { SolutionStep } from "@/data/linesAndPlanesData";
 
@@ -7,42 +6,25 @@ type StepByStepSolutionProps = {
   answer?: string;
   defaultOpen?: boolean;
   title?: string;
+  appearance?: "dark" | "paper";
 };
 
-export function StepByStepSolution({
-  steps,
-  answer,
-  defaultOpen = false,
-  title = "View typed solution",
-}: StepByStepSolutionProps) {
+export function StepByStepSolution({ steps, answer, defaultOpen = false, title = "View worked solution", appearance = "dark" }: StepByStepSolutionProps) {
+  const paper = appearance === "paper";
   return (
-    <Accordion
-      defaultOpen={defaultOpen}
-      title={
-        <span className="text-sm font-semibold text-zinc-300">{title}</span>
-      }
-      className="bg-[#0d0d0d]"
-    >
-      <ol className="space-y-5">
-        {steps.map((step, index) => (
-          <li key={`${step.label}-${index}`} className="grid gap-3 sm:grid-cols-[32px_1fr]">
-            <span className="grid h-8 w-8 place-items-center border border-white/10 font-mono text-[10px] text-sky-300">
-              {String(index + 1).padStart(2, "0")}
-            </span>
-            <div>
-              <p className="text-sm font-semibold text-zinc-200">{step.label}</p>
-              <p className="mt-1 text-sm leading-6 text-zinc-500">{step.text}</p>
-              {step.math && <MathJaxRenderer math={step.math} className="mt-3 text-sm text-zinc-200" />}
-            </div>
-          </li>
-        ))}
-      </ol>
-      {answer && (
-        <div className="mt-6 border-l-2 border-sky-400 bg-sky-400/[0.055] p-4">
-          <p className="micro-label text-sky-300">Final answer</p>
-          <MathJaxRenderer math={answer} className="mt-2 text-sm text-zinc-200" />
-        </div>
-      )}
-    </Accordion>
+    <details open={defaultOpen} className={`border ${paper ? "border-slate-300 bg-white text-slate-800" : "border-white/15 bg-[#111] text-zinc-200"}`}>
+      <summary className={`cursor-pointer p-5 text-base font-semibold ${paper ? "text-slate-900" : "text-zinc-100"}`}>{title}</summary>
+      <div className={`border-t p-5 sm:p-6 ${paper ? "border-slate-300" : "border-white/15"}`}>
+        <ol className="space-y-7">
+          {steps.map((step, index) => (
+            <li key={`${step.label}-${index}`} className="grid grid-cols-[32px_1fr] gap-3 sm:gap-4">
+              <span className={`grid h-8 w-8 place-items-center border text-sm font-semibold ${paper ? "border-slate-300 text-sky-900" : "border-white/20 text-sky-200"}`}>{index + 1}</span>
+              <div className="min-w-0"><MathJaxRenderer math={step.label} className="text-base font-semibold leading-7" /><MathJaxRenderer math={step.text} className={`mt-2 text-base leading-8 ${paper ? "text-slate-700" : "text-zinc-300"}`} />{step.math && <MathJaxRenderer math={step.math} className="mt-3 text-base leading-8 sm:text-lg" />}</div>
+            </li>
+          ))}
+        </ol>
+        {answer && <div className={`mt-7 border-l-4 p-5 ${paper ? "border-sky-800 bg-sky-50" : "border-sky-400 bg-sky-400/[0.055]"}`}><p className="text-base font-semibold">Final answer</p><MathJaxRenderer math={answer} className="mt-3 text-base leading-8" /></div>}
+      </div>
+    </details>
   );
 }

@@ -25,12 +25,18 @@ export function MathJaxRenderer({
 }: MathJaxRendererProps) {
   const ref = useRef<HTMLDivElement>(null);
   const id = useId();
-  const [ready, setReady] = useState(false);
+  const hasMath = /\\[([]/.test(math);
+  const [ready, setReady] = useState(!hasMath);
 
   useEffect(() => {
     let active = true;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     let attempts = 0;
+
+    if (!hasMath) {
+      queueMicrotask(() => { if (active) setReady(true); });
+      return () => { active = false; };
+    }
 
     const render = async () => {
       const node = ref.current;
@@ -47,6 +53,8 @@ export function MathJaxRenderer({
         await mathJax.startup?.promise;
         mathJax.typesetClear?.([node]);
         await mathJax.typesetPromise([node]);
+      } catch {
+        // Keep the source notation readable when the external renderer fails.
       } finally {
         if (active) setReady(true);
       }
@@ -61,14 +69,14 @@ export function MathJaxRenderer({
       active = false;
       if (retryTimer) clearTimeout(retryTimer);
     };
-  }, [math]);
+  }, [hasMath, math]);
 
   return (
     <div
       ref={ref}
       id={`math-${id.replace(/:/g, "")}`}
       className={`math-content ${className}`}
-      data-ready={ready}
+      data-ready={!hasMath || ready}
       aria-label={ariaLabel ?? math.replace(/[\\()[\]]/g, "")}
     >
       {math}

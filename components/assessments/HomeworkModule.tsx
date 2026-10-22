@@ -1,7 +1,7 @@
 "use client";
 
-import { Check, Clock3, Lightbulb } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { MathJaxRenderer } from "@/components/ui/MathJaxRenderer";
 import { KATCBadge } from "./KATCBadge";
 import { StepByStepSolution } from "./StepByStepSolution";
 import { homeworkSets } from "@/data/linesAndPlanesData";
@@ -15,7 +15,11 @@ export function HomeworkModule() {
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
-      if (saved) queueMicrotask(() => setCompleted(JSON.parse(saved) as string[]));
+      if (saved) {
+        const parsed: unknown = JSON.parse(saved);
+        const ids = new Set(homeworkSets.flatMap((set) => set.problems.map((problem) => problem.id)));
+        if (Array.isArray(parsed)) queueMicrotask(() => setCompleted([...new Set(parsed.filter((id): id is string => typeof id === "string" && ids.has(id)))]));
+      }
     } catch {}
   }, []);
 
@@ -28,7 +32,7 @@ export function HomeworkModule() {
       const next = current.includes(problemId)
         ? current.filter((id) => id !== problemId)
         : [...current, problemId];
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {}
       return next;
     });
   };
@@ -71,7 +75,7 @@ export function HomeworkModule() {
                   <span className="micro-label text-sky-300">Set {set.number}</span>
                   <span className="font-mono text-[10px] text-zinc-600">{done}/{set.problems.length}</span>
                 </div>
-                <p className="mt-2 text-sm font-semibold text-zinc-300">{set.title}</p>
+                <p className="mt-2 text-base font-semibold text-zinc-200">{set.title}</p>
               </button>
             );
           })}
@@ -83,10 +87,10 @@ export function HomeworkModule() {
           <div>
             <p className="micro-label text-sky-300">Homework {selected.number}</p>
             <h3 className="mt-2 text-2xl font-semibold tracking-tight">{selected.title}</h3>
-            <p className="mt-2 text-sm text-zinc-500">{selected.focus}</p>
+            <p className="mt-2 text-base leading-7 text-zinc-300">{selected.focus}</p>
           </div>
-          <div className="flex items-center gap-4 text-xs text-zinc-500">
-            <span className="flex items-center gap-2"><Clock3 size={14} /> {selected.estimatedMinutes} min</span>
+          <div className="flex items-center gap-4 text-sm text-zinc-400">
+            <span>{selected.estimatedMinutes} min</span>
             <span>{setCompletion}/{selected.problems.length} complete</span>
           </div>
         </div>
@@ -104,7 +108,7 @@ export function HomeworkModule() {
                         {problem.tags.map((tag) => <KATCBadge key={tag} category={tag} />)}
                       </div>
                       <h4 className="mt-4 text-lg font-semibold text-zinc-200">{problem.title}</h4>
-                      <p className="mt-2 max-w-3xl text-sm leading-7 text-zinc-400">{problem.prompt}</p>
+                      <MathJaxRenderer math={problem.prompt} className="mt-3 max-w-3xl text-base leading-8 text-zinc-200" />
                     </div>
                   </div>
                   <button
@@ -117,15 +121,15 @@ export function HomeworkModule() {
                     }`}
                     aria-pressed={isComplete}
                   >
-                    <Check size={13} /> {isComplete ? "Completed" : "Mark complete"}
+                    {isComplete ? "Completed" : "Mark complete"}
                   </button>
                 </div>
 
                 <details className="group mt-5 border-l border-white/10 pl-4">
-                  <summary className="flex cursor-pointer list-none items-center gap-2 text-xs text-zinc-500 transition hover:text-zinc-300">
-                    <Lightbulb size={13} className="text-sky-300" /> Need a hint?
+                  <summary className="cursor-pointer text-base font-semibold text-zinc-300 transition hover:text-zinc-100">
+                    Show hint
                   </summary>
-                  <p className="mt-3 text-sm leading-6 text-zinc-500">{problem.hint}</p>
+                  <MathJaxRenderer math={problem.hint} className="mt-3 text-base leading-7 text-zinc-300" />
                 </details>
 
                 <div className="mt-5">

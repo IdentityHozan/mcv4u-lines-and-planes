@@ -4,8 +4,8 @@ import { ScrollReveal } from "@/components/ui/ScrollReveal";
 const coursePath = [
   {
     number: "01",
-    title: "Learn",
-    description: "Build each idea in order with diagrams, exact notation, and worked examples.",
+    title: "Watch and learn",
+    description: "Start with the video, then work through the lesson notes, diagrams, and examples.",
     href: "/lessons",
     linkLabel: "Open lessons",
   },
@@ -25,10 +25,24 @@ const coursePath = [
   },
   {
     number: "04",
-    title: "Assess",
-    description: "Use longer KATC assessments with multiple-choice and written-response questions.",
+    title: "Quizzes",
+    description: "Check each topic with multiple-choice questions, written problems, and worked solutions.",
     href: "/assessments",
     linkLabel: "Open assessments",
+  },
+  {
+    number: "05",
+    title: "Tests",
+    description: "Apply several skills in a formal test before reviewing the worked solutions.",
+    href: "/tests",
+    linkLabel: "Open tests",
+  },
+  {
+    number: "06",
+    title: "Final exam",
+    description: "Complete a cumulative assessment across equations, intersections, distances, and reasoning.",
+    href: "/exam",
+    linkLabel: "Open final exam",
   },
 ];
 
@@ -41,11 +55,12 @@ export default function HomePage() {
             <p className="micro-label text-sky-300">MCV4U</p>
             <h1 className="page-title mt-5 text-zinc-100">Lines and Planes</h1>
             <p className="page-lead mt-6 max-w-2xl">
-              A focused course for understanding equations, geometry, intersections, and distance in two and three dimensions.
+              Study Sections 8.1 to 9.6 in order. Learn line and plane equations, solve intersections, and calculate exact distances.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/lessons/line-equations" className="primary-action">Start learning</Link>
               <Link href="/visualizer" className="secondary-action">Explore in 3D</Link>
+              <Link href="/resources" className="secondary-action">Course resources</Link>
             </div>
           </div>
         </ScrollReveal>

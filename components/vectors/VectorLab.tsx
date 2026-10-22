@@ -16,10 +16,6 @@ import {
 type Experiment = "line-plane" | "two-planes" | "distance";
 type MotionMode = "approach" | "travel" | "slide-plane";
 
-export type VectorLabProps = {
-  embedded?: boolean;
-};
-
 const EPSILON = 1e-8;
 
 const experimentOptions: Array<{ id: Experiment; label: string; description: string }> = [
@@ -117,7 +113,11 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
   );
 }
 
-export function VectorLab({ embedded = false }: VectorLabProps = {}) {
+type VectorLabProps = {
+  embedded?: boolean;
+};
+
+export function VectorLab({ embedded = false }: VectorLabProps) {
   const workspaceRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef(0);
   const travelDirectionRef = useRef(1);
@@ -153,7 +153,7 @@ export function VectorLab({ embedded = false }: VectorLabProps = {}) {
   const [gridHeight, setGridHeight] = useState(0);
   const [gridSnap, setGridSnap] = useState(1);
   const [selectedPoint, setSelectedPoint] = useState<ScenePointSelection | null>(null);
-  const [panelOpen, setPanelOpen] = useState(true);
+  const [panelOpen, setPanelOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const linePlane = useMemo(() => {
@@ -279,6 +279,13 @@ export function VectorLab({ embedded = false }: VectorLabProps = {}) {
     return () => document.removeEventListener("fullscreenchange", update);
   }, []);
 
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      setPanelOpen(window.matchMedia("(min-width: 1024px)").matches);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
   const reset = () => {
     setExperiment("line-plane");
     setLinePoint([1, 1, -1]);
@@ -340,9 +347,10 @@ export function VectorLab({ embedded = false }: VectorLabProps = {}) {
 
   const sceneMode = experiment === "two-planes" || (experiment === "distance" && distanceMode === "point-plane") ? "plane" : experiment === "distance" ? "line" : "both";
   const sceneDistanceMode: DistanceMode = experiment === "distance" ? distanceMode : "none";
+  const showApproachReadout = experiment === "line-plane" && motionMode === "approach" && linePlane.type === "point";
 
   return (
-    <div ref={workspaceRef} className={`visualizer-workspace flex min-h-0 flex-col overflow-hidden bg-[#0a0a0a] ${embedded ? "h-full" : "h-[calc(100dvh-4rem)] sm:h-[calc(100dvh-4.5rem)]"}`}>
+    <div ref={workspaceRef} className={`visualizer-workspace flex flex-col overflow-hidden bg-[#0a0a0a] ${embedded ? "h-full min-h-0" : "h-[calc(100dvh-4rem)] sm:h-[calc(100dvh-4.5rem)]"}`}>
       <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-[#0d0d0d] px-3 py-2 sm:px-5">
         <div>
           <h1 className="text-sm font-semibold text-zinc-100 sm:text-base">3D Lines and Planes</h1>
@@ -356,8 +364,9 @@ export function VectorLab({ embedded = false }: VectorLabProps = {}) {
       </header>
 
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
-        <section className="relative min-w-0 flex-1" aria-label="Interactive three-dimensional scene">
-          <Interactive3DPlane
+        <section className="flex min-h-0 min-w-0 flex-1 flex-col" aria-label="Interactive three-dimensional scene">
+          <div className="relative min-h-0 flex-1">
+            <Interactive3DPlane
             linePoint={linePoint}
             lineDirection={lineDirection}
             planeNormal={planeNormal}
@@ -390,32 +399,28 @@ export function VectorLab({ embedded = false }: VectorLabProps = {}) {
             selectedPoint={selectedPoint}
             onSelectPoint={setSelectedPoint}
             onGridPlace={handleGridPlace}
-          />
-
-          <div className="pointer-events-none absolute left-3 top-3 hidden border border-white/10 bg-black/85 px-3 py-2 text-[11px] text-zinc-400 backdrop-blur sm:block">
-            Click a point or plane to inspect it. Drag to rotate. Scroll or pinch to zoom.
+            />
           </div>
 
-          {experiment === "line-plane" && motionMode === "approach" && linePlane.type === "point" && (
-            <div className="pointer-events-none absolute left-1/2 top-14 w-[min(92%,390px)] -translate-x-1/2 border border-sky-400/25 bg-black/90 p-3 backdrop-blur sm:top-3">
-              <div className="flex items-center justify-between gap-3"><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-300">Approaching the intersection</p><span className="font-mono text-[10px] text-zinc-300">{Math.round(motionProgress * 100)}%</span></div>
-              <div className="mt-2 h-1 bg-white/10"><div className="h-full bg-sky-400" style={{ width: `${motionProgress * 100}%` }} /></div>
-              <div className="mt-3 grid grid-cols-3 gap-3 font-mono text-[10px]"><div><span className="block text-zinc-500">Parameter t</span><span className="text-zinc-100">{formatNumber(currentParameter)}</span></div><div><span className="block text-zinc-500">Plane residual</span><span className="text-sky-200">{formatNumber(residual)}</span></div><div><span className="block text-zinc-500">Distance</span><span className="text-zinc-100">{planeDistance === null ? "Not defined" : formatNumber(planeDistance)}</span></div></div>
+          <details className="max-h-[40%] shrink-0 overflow-y-auto border-t border-white/10 bg-[#101010]">
+            <summary className="flex min-h-11 cursor-pointer list-none flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2 text-xs text-zinc-300 [&::-webkit-details-marker]:hidden">
+              <span className="font-semibold text-zinc-100">{selectedPoint ? `${selectedPoint.label}: (${formatVector(selectedPoint.position)})` : headline.title}</span>
+              <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                {experiment === "line-plane" && <span className="font-mono text-sky-200">{motionMode === "slide-plane" ? `k = ${formatNumber(planeConstant)}` : `t = ${formatNumber(currentParameter)}`}{showApproachReadout && <span className="ml-4">Distance = {planeDistance === null ? "Not defined" : formatNumber(planeDistance)}</span>}</span>}
+                <span className="text-sky-300">Result and help</span>
+              </span>
+            </summary>
+            <div className="space-y-4 border-t border-white/10 p-4">
+              <div>
+                <p className="text-sm font-semibold text-zinc-100">{headline.title}</p>
+                <p className="mt-1 text-sm leading-6 text-zinc-300">{headline.detail}</p>
+                {headline.math && <MathJaxRenderer math={headline.math} className="mt-2 text-sm text-sky-200" />}
+              </div>
+              {showApproachReadout && <p className="text-sm leading-6 text-zinc-300">Animation {Math.round(motionProgress * 100)}% complete. Plane residual: <span className="font-mono text-sky-200">{formatNumber(residual)}</span>. A residual of zero means the point lies on the plane.</p>}
+              {selectedPoint && <div className="flex items-center justify-between gap-4 border-t border-white/10 pt-3"><p className="text-sm text-zinc-300">Selected point: <span className="font-mono text-sky-200">({formatVector(selectedPoint.position)})</span></p><button type="button" onClick={() => setSelectedPoint(null)} className="visualizer-toolbar-button">Clear selection</button></div>}
+              <p className="text-xs leading-6 text-zinc-400">Drag to rotate. Scroll or pinch to zoom. Select a point or plane to inspect its coordinates.</p>
             </div>
-          )}
-
-          {selectedPoint && (
-            <div className="absolute right-3 top-3 border border-sky-400/25 bg-black/90 p-3 shadow-xl backdrop-blur">
-              <div className="flex items-start gap-5"><div><p className="micro-label text-sky-300">Selected point</p><p className="mt-1 text-xs font-semibold">{selectedPoint.label}</p><p className="mt-1 font-mono text-[11px] text-sky-200">({formatVector(selectedPoint.position)})</p></div><button type="button" onClick={() => setSelectedPoint(null)} className="text-[10px] font-semibold text-zinc-500 hover:text-zinc-100">Clear</button></div>
-            </div>
-          )}
-
-          <div className="pointer-events-none absolute bottom-3 left-3 max-w-[calc(100%-1.5rem)] border border-sky-400/25 bg-black/90 p-4 shadow-2xl backdrop-blur sm:max-w-md">
-            <p className="micro-label text-sky-300">Live result</p>
-            <p className="mt-2 text-sm font-semibold text-zinc-100">{headline.title}</p>
-            <p className="mt-1 text-xs leading-5 text-zinc-400">{headline.detail}</p>
-            {headline.math && <MathJaxRenderer math={headline.math} className="mt-2 text-xs text-sky-200" />}
-          </div>
+          </details>
         </section>
 
         <AnimatePresence initial={false}>
@@ -476,8 +481,31 @@ export function VectorLab({ embedded = false }: VectorLabProps = {}) {
                       {motionMode === "approach" && <label className="mt-4 block"><span className="mb-2 flex justify-between text-[11px] text-zinc-500"><span>Animation progress</span><span>{Math.round(motionProgress * 100)}%</span></span><input type="range" min="0" max="1" step="0.01" value={motionProgress} onChange={(event) => { setAnimating(false); setMotionProgress(Number(event.target.value)); }} className="range-input w-full" /></label>}
                       {motionMode === "travel" && <NumberStepper label="Parameter t" value={parameter} step={0.25} onChange={(value) => { setAnimating(false); setParameter(value); }} />}
                       <label className="mt-4 block"><span className="mb-2 flex justify-between text-[11px] text-zinc-500"><span>Speed</span><span>{motionSpeed.toFixed(1)}x</span></span><input type="range" min="0.5" max="2" step="0.1" value={motionSpeed} onChange={(event) => setMotionSpeed(Number(event.target.value))} className="range-input w-full" /></label>
+                      {showApproachReadout && (
+                        <div className="mt-5 border border-sky-400/20 bg-sky-400/[0.035] p-4" aria-label="Live animation values">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-xs font-semibold text-sky-200">Approaching the intersection</p>
+                            <span className="font-mono text-xs text-zinc-200">{Math.round(motionProgress * 100)}%</span>
+                          </div>
+                          <div className="mt-3 h-1 bg-white/10"><div className="h-full bg-sky-400" style={{ width: `${motionProgress * 100}%` }} /></div>
+                          <dl className="mt-4 space-y-3 text-sm">
+                            <div className="flex justify-between gap-3"><dt className="text-zinc-300">Parameter t</dt><dd className="font-mono text-zinc-100">{formatNumber(currentParameter)}</dd></div>
+                            <div className="flex justify-between gap-3"><dt className="text-zinc-300">Plane residual</dt><dd className="font-mono text-sky-200">{formatNumber(residual)}</dd></div>
+                            <div className="flex justify-between gap-3"><dt className="text-zinc-300">Distance to plane</dt><dd className="font-mono text-zinc-100">{planeDistance === null ? "Not defined" : `${formatNumber(planeDistance)} units`}</dd></div>
+                          </dl>
+                          <p className="mt-4 border-t border-sky-400/15 pt-3 text-xs leading-6 text-zinc-400">At the intersection, the residual and distance are both zero.</p>
+                        </div>
+                      )}
                     </section>
                   )}
+
+                  <section className="border-t border-white/10 pt-6" aria-label="Live geometry result">
+                    <p className="micro-label text-sky-300">Result</p>
+                    <h2 className="mt-3 text-base font-semibold text-zinc-100">{headline.title}</h2>
+                    <p className="mt-2 text-sm leading-6 text-zinc-300">{headline.detail}</p>
+                    {headline.math && <MathJaxRenderer math={headline.math} className="mt-3 text-sm text-sky-200" />}
+                    {selectedPoint && <div className="mt-4 border-t border-white/10 pt-4"><p className="text-xs font-semibold text-zinc-300">{selectedPoint.label}</p><p className="mt-2 font-mono text-sm text-sky-200">({formatVector(selectedPoint.position)})</p><button type="button" onClick={() => setSelectedPoint(null)} className="visualizer-toolbar-button mt-3">Clear selection</button></div>}
+                  </section>
 
                   <section className="border-t border-white/10 pt-6">
                     <p className="micro-label text-sky-300">Equations</p>

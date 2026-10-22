@@ -9,10 +9,10 @@ export default function ExamPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Final assessment"
-        title="Bring every skill together"
-        description="Complete 12 questions across all KATC categories. Written responses include clear criteria, student samples, and complete solutions."
-        actions={<Link href="/assessments" className="secondary-action">Complete the quizzes first</Link>}
+        eyebrow="Assessment stage 3"
+        title="Final examination"
+        description="A comprehensive 24-question paper covering lines, planes, intersections, angles, and distances. Complete the full examination before reviewing the worked solutions and marking criteria."
+        actions={<Link href="/tests" className="secondary-action">Complete the unit tests first</Link>}
       />
       <ScrollReveal className="section-shell page-section"><AssessmentHub variant="exam" /></ScrollReveal>
     </>

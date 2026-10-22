@@ -159,13 +159,86 @@ function DistanceDiagram() {
   );
 }
 
+function LineTwoDimensionsDiagram() {
+  return (
+    <Frame title="A line in two dimensions uses one anchor and one direction">
+      <line x1="75" y1="230" x2="585" y2="230" stroke="#71717a" strokeWidth="2" />
+      <line x1="180" y1="325" x2="180" y2="30" stroke="#71717a" strokeWidth="2" />
+      <text x="593" y="236" fill="#d4d4d8" style={textStyle}>x</text><text x="163" y="27" fill="#d4d4d8" style={textStyle}>y</text>
+      <line x1="120" y1="340" x2="495" y2="90" stroke="#f5f5f5" strokeWidth="4" />
+      <circle cx="240" cy="260" r="7" fill="#f5f5f5" />
+      <circle cx="330" cy="200" r="6" fill="#38bdf8" />
+      <line x1="240" y1="260" x2="330" y2="200" stroke="#38bdf8" strokeWidth="5" markerEnd="url(#lesson-arrow-blue)" />
+      <text x="218" y="291" fill="#f5f5f5" style={textStyle}>P(2, −1)</text>
+      <text x="338" y="180" fill="#7dd3fc" style={textStyle}>S(5, 1)</text>
+      <text x="356" y="220" fill="#7dd3fc" style={textStyle}>d = (3, 2)</text>
+      <text x="370" y="310" fill="#d4d4d8" style={textStyle}>r = P + td</text>
+    </Frame>
+  );
+}
+
+function CartesianLineDiagram() {
+  return (
+    <Frame title="A Cartesian line has perpendicular direction and normal vectors">
+      <line x1="85" y1="240" x2="590" y2="240" stroke="#71717a" strokeWidth="2" />
+      <line x1="240" y1="325" x2="240" y2="25" stroke="#71717a" strokeWidth="2" />
+      <text x="596" y="246" fill="#d4d4d8" style={textStyle}>x</text><text x="222" y="25" fill="#d4d4d8" style={textStyle}>y</text>
+      <line x1="195" y1="300" x2="315" y2="60" stroke="#f5f5f5" strokeWidth="4" />
+      <circle cx="240" cy="210" r="7" fill="#f5f5f5" />
+      <line x1="240" y1="210" x2="285" y2="120" stroke="#38bdf8" strokeWidth="4" markerEnd="url(#lesson-arrow-blue)" />
+      <line x1="240" y1="210" x2="330" y2="255" stroke="#38bdf8" strokeWidth="4" markerEnd="url(#lesson-arrow-blue)" />
+      <path d="M247 196 L261 203 L254 217" fill="none" stroke="#7dd3fc" strokeWidth="2" />
+      <text x="300" y="114" fill="#7dd3fc" style={textStyle}>d = (1, 2)</text>
+      <text x="340" y="263" fill="#7dd3fc" style={textStyle}>n = (2, −1)</text>
+      <text x="110" y="202" fill="#f5f5f5" style={textStyle}>P(0, 1)</text>
+      <text x="380" y="170" fill="#f5f5f5" style={textStyle}>2x − y + 1 = 0</text>
+    </Frame>
+  );
+}
+
+function ThreePlanesDiagram() {
+  return (
+    <Frame title="Three independent plane constraints can determine one common point">
+      <polygon points="320,230 545,300 320,345 95,275" fill="#38bdf8" fillOpacity="0.15" stroke="#38bdf8" strokeWidth="2" />
+      <polygon points="320,230 545,300 545,105 320,35" fill="#f5f5f5" fillOpacity="0.07" stroke="#d4d4d8" strokeWidth="2" />
+      <polygon points="320,230 95,275 95,80 320,35" fill="#7dd3fc" fillOpacity="0.10" stroke="#7dd3fc" strokeWidth="2" />
+      <circle cx="320" cy="230" r="8" fill="#f5f5f5" />
+      <line x1="320" y1="230" x2="425" y2="198" stroke="#f5f5f5" strokeWidth="1.5" />
+      <text x="430" y="195" fill="#f5f5f5" style={textStyle}>common point</text>
+      <text x="520" y="329" fill="#7dd3fc" style={textStyle}>z = 0</text>
+      <text x="516" y="85" fill="#d4d4d8" style={textStyle}>y = 0</text>
+      <text x="90" y="61" fill="#7dd3fc" style={textStyle}>x = 0</text>
+      <text x="390" y="32" fill="#d4d4d8" style={textStyle}>independent normals</text>
+    </Frame>
+  );
+}
+
+function PointPlaneDiagram() {
+  return (
+    <Frame title="The shortest path from a point to a plane follows its normal">
+      <polygon points="100,260 350,155 575,235 320,335" fill="#38bdf8" fillOpacity="0.15" stroke="#38bdf8" strokeWidth="2" />
+      <line x1="330" y1="240" x2="330" y2="64" stroke="#38bdf8" strokeWidth="4" strokeDasharray="7 6" />
+      <circle cx="330" cy="70" r="8" fill="#38bdf8" /><circle cx="330" cy="240" r="7" fill="#f5f5f5" />
+      <path d="M330 222 L349 229 L349 247" fill="none" stroke="#f5f5f5" strokeWidth="2" />
+      <text x="350" y="72" fill="#7dd3fc" style={textStyle}>point P</text>
+      <text x="350" y="160" fill="#7dd3fc" style={textStyle}>normal direction n</text>
+      <text x="352" y="263" fill="#f5f5f5" style={textStyle}>perpendicular foot H</text>
+      <text x="138" y="273" fill="#7dd3fc" style={textStyle}>plane Π</text>
+    </Frame>
+  );
+}
+
 export function LessonDiagram({ lessonId }: LessonDiagramProps) {
-  if (lessonId === "line-equations") return <LineEquationDiagram />;
+  if (lessonId === "line-equations") return <LineTwoDimensionsDiagram />;
+  if (lessonId === "lines-r3") return <LineEquationDiagram />;
+  if (lessonId === "cartesian-lines-r2") return <CartesianLineDiagram />;
   if (lessonId === "plane-equations") return <PlaneEquationDiagram />;
   if (lessonId === "sketching-r3") return <InterceptsDiagram />;
   if (lessonId === "defining-a-plane") return <DefinePlaneDiagram />;
   if (lessonId === "line-plane-intersections") return <LinePlaneDiagram />;
   if (lessonId === "two-plane-intersections") return <TwoPlanesDiagram />;
   if (lessonId === "consistent-systems") return <SystemsDiagram />;
+  if (lessonId === "three-plane-intersections") return <ThreePlanesDiagram />;
+  if (lessonId === "point-plane-distance") return <PointPlaneDiagram />;
   return <DistanceDiagram />;
 }
