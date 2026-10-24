@@ -1,15 +1,18 @@
 "use client";
 
+import Link from "@/components/ui/SiteLink";
 import { useEffect, useMemo, useState } from "react";
 import { MathJaxRenderer } from "@/components/ui/MathJaxRenderer";
 import { KATCBadge } from "./KATCBadge";
 import { StepByStepSolution } from "./StepByStepSolution";
 import { homeworkSets } from "@/data/linesAndPlanesData";
 
+import { courseUnits, homeworkHref, quizHref, testHref, unitForSection } from "@/data/courseUnits";
+
 const STORAGE_KEY = "mcv4u-lines-and-planes-homework";
 
-export function HomeworkModule() {
-  const [activeSet, setActiveSet] = useState(homeworkSets[0].id);
+export function HomeworkModule({ initialSection }: { initialSection?: string }) {
+  const [activeSet, setActiveSet] = useState(() => (homeworkSets.find((set) => set.number === initialSection) ?? homeworkSets[0]).id);
   const [completed, setCompleted] = useState<string[]>([]);
 
   useEffect(() => {
@@ -24,6 +27,12 @@ export function HomeworkModule() {
   }, []);
 
   const selected = homeworkSets.find((set) => set.id === activeSet) ?? homeworkSets[0];
+  const unit = unitForSection(selected.number);
+  const selectSection = (id: string) => {
+    setActiveSet(id);
+    const set = homeworkSets.find((item) => item.id === id);
+    if (set) window.history.replaceState(null, "", homeworkHref(set.number));
+  };
   const totalProblems = homeworkSets.reduce((total, set) => total + set.problems.length, 0);
   const progress = Math.round((completed.length / totalProblems) * 100);
 
@@ -45,26 +54,22 @@ export function HomeworkModule() {
   return (
     <div className="grid gap-6 xl:grid-cols-[270px_1fr]">
       <div>
-        <div className="border border-white/10 bg-[#111] p-5">
-          <div className="flex items-end justify-between">
-            <div>
-              <p className="micro-label text-zinc-500">Practice progress</p>
-              <p className="mt-2 font-mono text-3xl text-zinc-100">{progress}%</p>
-            </div>
-            <p className="text-xs text-zinc-600">{completed.length}/{totalProblems}</p>
-          </div>
-          <div className="mt-4 h-1 bg-white/10">
-            <div className="h-full bg-sky-300 transition-all duration-500" style={{ width: `${progress}%` }} />
-          </div>
+        <div className="border-b border-white/10 pb-4">
+          <p className="text-sm text-zinc-400">Completed {completed.length} / {totalProblems}</p>
+          <div className="mt-3 h-1 bg-white/10"><div className="h-full bg-sky-300 transition-all duration-500" style={{ width: `${progress}%` }} /></div>
         </div>
-        <div className="mt-3 space-y-1">
-          {homeworkSets.map((set) => {
+        <label className="mt-5 block text-base font-semibold xl:hidden">Section
+          <select value={activeSet} onChange={(event) => selectSection(event.target.value)} className="mt-3 w-full border border-white/20 bg-[#111] p-3 text-base text-zinc-100">{homeworkSets.map((set) => <option key={set.id} value={set.id}>Homework {set.number} {set.title}</option>)}</select>
+        </label>
+        <nav aria-label="Section homework" className="mt-5 hidden space-y-5 xl:block">
+          {courseUnits.map((group) => <section key={group.id}><h2 className="mb-2 text-sm font-semibold text-zinc-300">Unit {group.id}</h2>{homeworkSets.filter((set) => group.sections.includes(set.number)).map((set) => {
             const done = set.problems.filter((problem) => completed.includes(problem.id)).length;
             return (
               <button
                 type="button"
                 key={set.id}
-                onClick={() => setActiveSet(set.id)}
+                aria-current={selected.id === set.id ? "page" : undefined}
+                onClick={() => selectSection(set.id)}
                 className={`w-full border p-4 text-left transition ${
                   selected.id === set.id
                     ? "border-sky-400/35 bg-sky-400/[0.055]"
@@ -72,14 +77,13 @@ export function HomeworkModule() {
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="micro-label text-sky-300">Set {set.number}</span>
-                  <span className="font-mono text-[10px] text-zinc-600">{done}/{set.problems.length}</span>
+                  <span className="micro-label text-sky-300">Homework {set.number}</span>
+                  <span className="font-mono text-xs text-zinc-400">{done}/{set.problems.length}</span>
                 </div>
-                <p className="mt-2 text-base font-semibold text-zinc-200">{set.title}</p>
               </button>
             );
-          })}
-        </div>
+          })}</section>)}
+        </nav>
       </div>
 
       <div>
@@ -87,7 +91,6 @@ export function HomeworkModule() {
           <div>
             <p className="micro-label text-sky-300">Homework {selected.number}</p>
             <h3 className="mt-2 text-2xl font-semibold tracking-tight">{selected.title}</h3>
-            <p className="mt-2 text-base leading-7 text-zinc-300">{selected.focus}</p>
           </div>
           <div className="flex items-center gap-4 text-sm text-zinc-400">
             <span>{selected.estimatedMinutes} min</span>
@@ -139,6 +142,13 @@ export function HomeworkModule() {
             );
           })}
         </div>
+        {unit && <section className="mt-10 border-t border-white/15 pt-7" aria-label="Continue this unit">
+          <div className="flex flex-wrap gap-3">
+            {(() => { const next = unit.sections[unit.sections.indexOf(selected.number) + 1]; return next ? <Link href={homeworkHref(next)} onClick={(event) => { event.preventDefault(); const set = homeworkSets.find((item) => item.number === next); if (set) { selectSection(set.id); window.scrollTo({ top: 0, behavior: "smooth" }); } }} className="primary-action">Next homework {next}</Link> : <Link href={quizHref(unit.id)} className="primary-action">Quiz {unit.id}</Link>; })()}
+            {unit.sections.indexOf(selected.number) < unit.sections.length - 1 && <Link href={quizHref(unit.id)} className="secondary-action">Quiz {unit.id}</Link>}
+            <Link href={testHref(unit.id)} className="secondary-action">Test {unit.id}</Link>
+          </div>
+        </section>}
       </div>
     </div>
   );

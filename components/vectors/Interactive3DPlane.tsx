@@ -4,6 +4,8 @@ import { Html, Line, OrbitControls } from "@react-three/drei";
 import { Canvas, type ThreeEvent, useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
+import { WebGLSurface } from "./WebGLSurface";
+import { ProjectedGeometry } from "./ProjectedGeometry";
 
 export type Vector3Value = [number, number, number];
 export type CameraView = "isometric" | "front" | "side" | "top";
@@ -15,7 +17,7 @@ export type ScenePointSelection = {
   position: Vector3Value;
 };
 
-type Interactive3DPlaneProps = {
+export type Interactive3DPlaneProps = {
   linePoint: Vector3Value;
   lineDirection: Vector3Value;
   planeNormal: Vector3Value;
@@ -46,6 +48,20 @@ type Interactive3DPlaneProps = {
   approachStartParameter: number;
   approachProgress: number;
   selectedPoint: ScenePointSelection | null;
+  showPlaneSpans?: boolean;
+  planeAnchor?: Vector3Value;
+  planeSpanA?: Vector3Value;
+  planeSpanB?: Vector3Value;
+  planeParameterS?: number;
+  planeParameterT?: number;
+  showTraces?: boolean;
+  showExternalPoint?: boolean;
+  thirdPlaneEnabled?: boolean;
+  thirdPlaneNormal?: Vector3Value;
+  thirdPlaneConstant?: number;
+  commonSet?: "none"|"point"|"line"|"plane";
+  commonPoint?: Vector3Value|null;
+  commonDirection?: Vector3Value|null;
   onSelectPoint: (selection: ScenePointSelection) => void;
   onGridPlace: (target: GridPlacementTarget, position: Vector3Value) => void;
 };
@@ -338,6 +354,8 @@ function Scene(props: Interactive3DPlaneProps) {
     selectedPoint,
     onSelectPoint,
     onGridPlace,
+    showPlaneSpans = false, planeAnchor = [1,0,2], planeSpanA = [1,1,0], planeSpanB = [0,1,1], planeParameterS = 0, planeParameterT = 0,
+    showTraces = false, showExternalPoint = false, thirdPlaneEnabled = false, thirdPlaneNormal = [0,0,1], thirdPlaneConstant = 3, commonSet, commonPoint, commonDirection,
   } = props;
 
   const safeDirection = useMemo<Vector3Value>(() => {
@@ -346,7 +364,20 @@ function Scene(props: Interactive3DPlaneProps) {
   }, [lineDirection]);
   const primaryPlane = useMemo(() => makePlane(planeNormal, planeConstant), [planeConstant, planeNormal]);
   const secondaryPlane = useMemo(() => makePlane(secondPlaneNormal, secondPlaneConstant), [secondPlaneConstant, secondPlaneNormal]);
+  const tertiaryPlane = useMemo(() => makePlane(thirdPlaneNormal, thirdPlaneConstant), [thirdPlaneNormal, thirdPlaneConstant]);
   const planeSize = gridSize * 0.66;
+  const planeTraces = useMemo(() => {
+    return [0,1,2].flatMap((fixed) => {
+      const coordinateNormal: Vector3Value = [0,0,0]; coordinateNormal[fixed] = 1;
+      const direction = new THREE.Vector3(...cross(planeNormal, coordinateNormal));
+      if (direction.lengthSq() < EPSILON) return [];
+      const free = [0,1,2].find(index => index !== fixed && Math.abs(planeNormal[index]) > EPSILON);
+      if (free === undefined) return [];
+      const point = new THREE.Vector3(); point.setComponent(free, planeConstant / planeNormal[free]);
+      direction.normalize();
+      return [{ fixed, points: [point.clone().addScaledVector(direction, -gridSize/2), point.clone().addScaledVector(direction, gridSize/2)] as const }];
+    });
+  }, [gridSize, planeNormal, planeConstant]);
 
   const lineEndpoints = useMemo(() => {
     const point = new THREE.Vector3(...linePoint);
@@ -371,6 +402,11 @@ function Scene(props: Interactive3DPlaneProps) {
 
   const planeIntersectionLine = useMemo(() => {
     if (!secondPlaneEnabled) return null;
+    if(thirdPlaneEnabled){
+      if(commonSet!=="line"||!commonPoint||!commonDirection)return null;
+      const point=new THREE.Vector3(...commonPoint),direction=new THREE.Vector3(...commonDirection).normalize();
+      return[point.clone().addScaledVector(direction,-gridSize),point.clone().addScaledVector(direction,gridSize)]as const;
+    }
     const directionArray = cross(primaryPlane.safeNormal, secondaryPlane.safeNormal);
     const direction = new THREE.Vector3(...directionArray);
     const denominator = direction.lengthSq();
@@ -382,7 +418,7 @@ function Scene(props: Interactive3DPlaneProps) {
       .divideScalar(denominator);
     const unitDirection = direction.normalize();
     return [point.clone().addScaledVector(unitDirection, -gridSize), point.clone().addScaledVector(unitDirection, gridSize)] as const;
-  }, [gridSize, planeConstant, primaryPlane.safeNormal, secondPlaneConstant, secondPlaneEnabled, secondaryPlane.safeNormal]);
+  }, [gridSize, planeConstant, primaryPlane.safeNormal, secondPlaneConstant, secondPlaneEnabled, secondaryPlane.safeNormal,thirdPlaneEnabled,commonSet,commonPoint,commonDirection]);
 
   const distanceMeasurement = useMemo(() => {
     const point = new THREE.Vector3(...externalPoint);
@@ -499,7 +535,7 @@ function Scene(props: Interactive3DPlaneProps) {
         onGridPlace={onGridPlace}
       />
 
-      {planeVisible && (
+      {planeVisible && validPrimaryPlane && (
         <group
           position={primaryPlane.point}
           quaternion={primaryPlane.quaternion}
@@ -520,7 +556,7 @@ function Scene(props: Interactive3DPlaneProps) {
         </group>
       )}
 
-      {planeVisible && secondPlaneEnabled && (
+      {planeVisible && secondPlaneEnabled && dot(secondPlaneNormal,secondPlaneNormal)>EPSILON && (
         <group
           position={secondaryPlane.point}
           quaternion={secondaryPlane.quaternion}
@@ -541,7 +577,39 @@ function Scene(props: Interactive3DPlaneProps) {
         </group>
       )}
 
-      {lineVisible && (
+      {planeVisible && thirdPlaneEnabled && dot(thirdPlaneNormal, thirdPlaneNormal) > EPSILON && (
+        <group position={tertiaryPlane.point} quaternion={tertiaryPlane.quaternion} onClick={selectPlanePoint("Point on Plane 3")}>
+          <mesh><planeGeometry args={[planeSize,planeSize]} /><meshStandardMaterial color="#c4b5fd" transparent opacity={0.15} side={THREE.DoubleSide} depthWrite={false} /></mesh>
+        </group>
+      )}
+      {thirdPlaneEnabled&&commonSet==="point"&&commonPoint&&<><SelectablePoint position={commonPoint} label="Common point of all three planes" color="#86efac" size={0.23} onSelect={onSelectPoint}/>{showObjectLabels&&<ObjectLabel position={commonPoint}>Common point ({commonPoint.map(x=>Number(x.toFixed(2))).join(", ")})</ObjectLabel>}</>}
+      {planeVisible && showPlaneSpans && validPrimaryPlane && (() => {
+        const a = new THREE.Vector3(...planeAnchor), u = new THREE.Vector3(...planeSpanA), v = new THREE.Vector3(...planeSpanB);
+        const firstEnd = a.clone().addScaledVector(u,planeParameterS), point = firstEnd.clone().addScaledVector(v,planeParameterT);
+        return <>
+          <Arrow origin={planeAnchor} direction={planeSpanA} length={u.length()} color="#86efac" />
+          <Arrow origin={planeAnchor} direction={planeSpanB} length={v.length()} color="#c4b5fd" />
+          <Line points={[a,firstEnd,point]} color="#f5f5f5" lineWidth={2} />
+          <SelectablePoint position={planeAnchor} label="Plane anchor A" color="#7dd3fc" size={0.15} onSelect={onSelectPoint} />
+          <SelectablePoint position={point.toArray() as Vector3Value} label="Point on plane" color="#f5f5f5" size={0.19} onSelect={onSelectPoint} />
+          {showObjectLabels && <><ObjectLabel position={a.clone().add(u).toArray() as Vector3Value}>Span a</ObjectLabel><ObjectLabel position={a.clone().add(v).toArray() as Vector3Value}>Span b</ObjectLabel><ObjectLabel position={point.toArray() as Vector3Value}>P({point.toArray().map(x=>Number(x.toFixed(2))).join(", ")})</ObjectLabel></>}
+        </>;
+      })()}
+      {planeVisible && showTraces && validPrimaryPlane && <>
+        {planeTraces.map(trace => <group key={trace.fixed}><Line points={trace.points} color={["#c4b5fd","#7dd3fc","#86efac"][trace.fixed]} lineWidth={2.8} />{showObjectLabels && <ObjectLabel position={trace.points[1].toArray() as Vector3Value}>{["yz trace","xz trace","xy trace"][trace.fixed]}</ObjectLabel>}</group>)}
+        {planeNormal.map((coefficient,axis) => {
+          if(Math.abs(coefficient)<EPSILON) return null;
+          const point: Vector3Value=[0,0,0];point[axis]=planeConstant/coefficient;
+          return <group key={axis}><SelectablePoint position={point} label={`${["x","y","z"][axis]}-intercept`} color="#7dd3fc" size={0.17} onSelect={onSelectPoint} />{showObjectLabels && <ObjectLabel position={point}>({point.map(x=>Number(x.toFixed(2))).join(", ")})</ObjectLabel>}</group>;
+        })}
+      </>}
+      {showExternalPoint && distanceMode === "none" && <>
+        <SelectablePoint position={externalPoint} label="Point P" color="#f5f5f5" size={0.2} onSelect={onSelectPoint} />
+        {showCoordinateGuides && <Line points={[[0,0,0],[externalPoint[0],0,0],[externalPoint[0],externalPoint[1],0],externalPoint]} color="#c4b5fd" lineWidth={1.8} dashed dashSize={0.2} gapSize={0.12} />}
+        {showObjectLabels && <ObjectLabel position={externalPoint}>P({externalPoint.join(", ")})</ObjectLabel>}
+      </>}
+
+      {lineVisible && validLine && (
         <>
           <Line points={lineEndpoints} color="#f5f5f5" lineWidth={2.2} />
           <SelectablePoint position={linePoint} label="Line anchor" color="#f5f5f5" size={0.16} onSelect={onSelectPoint} />
@@ -716,8 +784,8 @@ export function Interactive3DPlane(props: Interactive3DPlaneProps) {
   }[props.cameraView];
 
   return (
-    <Canvas key={props.cameraView} camera={{ position: camera.position, up: camera.up, fov: 48 }} dpr={[1, 1.75]} gl={{ antialias: true }}>
+    <WebGLSurface fallback={<ProjectedGeometry {...props}/>}><Canvas key={props.cameraView} camera={{ position: camera.position, up: camera.up, fov: 48 }} dpr={[1, 1.75]} gl={{ antialias: true }}>
       <Scene {...props} />
-    </Canvas>
+    </Canvas></WebGLSurface>
   );
 }

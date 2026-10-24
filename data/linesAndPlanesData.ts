@@ -1,3 +1,5 @@
+import { sectionHomeworkSets } from "./sectionHomework";
+import { unitQuizzes, unitTests } from "./unitAssessments";
 import { classroomLessons } from "./classroomLessons";
 import { recordingUrls } from "./videoRecordings";
 
@@ -40,6 +42,8 @@ export type ConceptModule = {
   };
   equations: EquationForm[];
   keyChecks: string[];
+  derivation?: SolutionStep[];
+  extraExamples?: Array<{ title: string; prompt: string; steps: SolutionStep[]; conclusion: string }>;
   workedExample: {
     prompt: string;
     steps: SolutionStep[];
@@ -66,6 +70,7 @@ export type VideoLesson = {
   videoUrl?: string;
   status?: "planned" | "ready";
   timestamps: VideoTimestamp[];
+  coverage?: string[];
   takeaways: string[];
 };
 
@@ -133,7 +138,7 @@ export const courseMeta = {
   title: "Lines and Planes",
   eyebrow: "Grade 12 Calculus & Vectors",
   summary:
-    "Build geometric intuition, translate among equation forms, and solve spatial systems with confidence.",
+    "Learn each section, complete its homework, then take the quiz and test for the unit.",
 } as const;
 
 export const learningObjectives: LearningObjective[] = [
@@ -172,9 +177,10 @@ export const videoLessons: VideoLesson[] = [
     sourceUrl: recordingUrls["video-lines"],
     creator: "The teaching team",
     status: recordingUrls["video-lines"] ? "ready" : "planned",
-    duration: "12 mins planned",
+    duration: "Recording pending",
     sections: ["8.1","8.2","8.3"],
-    timestamps: [{"time":"00:00","seconds":0,"label":"A point and a direction"},{"time":"00:45","seconds":45,"label":"Build a direction from two points"},{"time":"02:15","seconds":135,"label":"Vector and parametric forms"},{"time":"03:45","seconds":225,"label":"Convert to Cartesian form"},{"time":"05:45","seconds":345,"label":"Equivalent lines and perpendicularity"},{"time":"07:00","seconds":420,"label":"Lines in three dimensions"},{"time":"09:30","seconds":570,"label":"Symmetric form and point membership"},{"time":"11:15","seconds":675,"label":"Review and practice"}],
+    timestamps: [],
+    coverage: ["Derive vector form from a known point and parallel direction", "Compare R² and R³ and interpret the parameter", "Construct lines from two points and write equivalent equations", "Convert vector, parametric and symmetric forms", "Compare coincident and distinct parallel lines", "Use normals and Cartesian conversions in R²", "Handle zero components and check points in R³"],
     takeaways: ["Use one anchor and a nonzero direction to describe a line.","Convert between vector, parametric, Cartesian and symmetric forms where applicable.","Handle zero direction components and verify points with one shared parameter."],
   },
   {
@@ -187,9 +193,10 @@ export const videoLessons: VideoLesson[] = [
     sourceUrl: recordingUrls["video-planes"],
     creator: "The teaching team",
     status: recordingUrls["video-planes"] ? "ready" : "planned",
-    duration: "12 mins planned",
+    duration: "Recording pending",
     sections: ["8.4","8.5","8.6"],
-    timestamps: [{"time":"00:00","seconds":0,"label":"A plane and two independent directions"},{"time":"01:00","seconds":60,"label":"Construct two span vectors"},{"time":"03:00","seconds":180,"label":"Vector and parametric forms"},{"time":"04:30","seconds":270,"label":"Normal and Cartesian equation"},{"time":"06:30","seconds":390,"label":"Plane definitions and angles"},{"time":"08:00","seconds":480,"label":"Sketch using intercepts"},{"time":"10:00","seconds":600,"label":"Missing intercepts and free coordinates"},{"time":"11:15","seconds":675,"label":"Review and practice"}],
+    timestamps: [],
+    coverage: ["Derive vector and parametric plane equations", "Construct planes from valid geometric information", "Test point membership and independent directions", "Find normals and convert equation forms", "Compare plane orientations and calculate angles", "Plot points and projections in R³", "Sketch planes with intercepts and coordinate-plane traces"],
     takeaways: ["Construct a plane from valid geometric information.","Connect independent spans and a perpendicular normal to the equation forms.","Sketch intercepts and interpret a missing variable without inventing an intercept."],
   },
   {
@@ -202,7 +209,7 @@ export const videoLessons: VideoLesson[] = [
     sourceUrl: recordingUrls["video-intersections"],
     creator: "The teaching team",
     status: recordingUrls["video-intersections"] ? "ready" : "planned",
-    duration: "15 mins planned",
+    duration: "Recording pending",
     sections: ["9.1","9.2","9.3","9.4"],
     timestamps: [{"time":"00:00","seconds":0,"label":"Intersection as a shared solution"},{"time":"00:45","seconds":45,"label":"Line and plane intersection"},{"time":"03:00","seconds":180,"label":"Parallel and contained line cases"},{"time":"04:15","seconds":255,"label":"Two lines and skew relationships"},{"time":"06:00","seconds":360,"label":"Elimination and consistent systems"},{"time":"08:15","seconds":495,"label":"Intersection of two planes"},{"time":"10:30","seconds":630,"label":"Intersection of three planes"},{"time":"13:15","seconds":795,"label":"Check a redundant equation"},{"time":"14:15","seconds":855,"label":"Review and practice"}],
     takeaways: ["Classify line and plane relationships by solving and checking all coordinates.","Use elimination to distinguish unique, infinite and inconsistent solution sets.","Interpret the common solution of two or three plane equations geometrically."],
@@ -217,7 +224,7 @@ export const videoLessons: VideoLesson[] = [
     sourceUrl: recordingUrls["video-distances"],
     creator: "The teaching team",
     status: recordingUrls["video-distances"] ? "ready" : "planned",
-    duration: "10 mins planned",
+    duration: "Recording pending",
     sections: ["9.5","9.6"],
     timestamps: [{"time":"00:00","seconds":0,"label":"Why the shortest path is perpendicular"},{"time":"01:00","seconds":60,"label":"Point to a line in two dimensions"},{"time":"03:00","seconds":180,"label":"Verify the perpendicular foot"},{"time":"04:00","seconds":240,"label":"Point to a line in three dimensions"},{"time":"06:15","seconds":375,"label":"Point to a plane"},{"time":"08:15","seconds":495,"label":"Zero distance and equivalent equations"},{"time":"09:15","seconds":555,"label":"Choose the method and practise"}],
     takeaways: ["Choose the distance method for the object and dimension.","Keep radical results exact before giving a decimal approximation.","Verify that a perpendicular foot lies on the target line or plane."],
@@ -580,7 +587,7 @@ const homeworkExtensions: Record<string, HomeworkProblem[]> = {
   ],
 };
 
-export const homeworkSets: HomeworkSet[] = originalHomeworkSets.map((set) => ({
+const legacyHomeworkSets: HomeworkSet[] = originalHomeworkSets.map((set) => ({
   ...set,
   estimatedMinutes: set.id === "homework-lines" ? 40 : 45,
   problems: [...set.problems, ...(homeworkExtensions[set.id] ?? [])],
@@ -1014,7 +1021,7 @@ const quizThreeAdditional: AssessmentQuestion[] = [
       workedStep("Classify", "Compare the constant expression with k.", "k=0\\Rightarrow L\\subset\\Pi_k,\\qquad k\\ne0\\Rightarrow L\\cap\\Pi_k=\\varnothing")]),
 ];
 
-export const quizzes: Assessment[] = [
+const legacyQuizzes: Assessment[] = [
   { ...quizOne, kind: "quiz", description: "Line equations, point membership, line relationships, and mathematical justification.", timeLimit: "30 min", instructions: assessmentInstructions, questions: academicQuestions([...quizOne.questions, ...quizOneAdditional], 3) },
   { ...quizTwo, kind: "quiz", description: "Plane equations, independent spans, normal vectors, and verification.", timeLimit: "30 min", instructions: assessmentInstructions, questions: academicQuestions([...quizTwo.questions, ...quizTwoAdditional], 3) },
   { ...quizThree, kind: "quiz", description: "Intersections, exact distances, angles, and parameter-dependent relationships.", timeLimit: "35 min", instructions: assessmentInstructions, questions: academicQuestions([...quizThree.questions, ...quizThreeAdditional], 3) },
@@ -1357,7 +1364,7 @@ const testTwoQuestions: AssessmentQuestion[] = [
       workedStep("Interpret", "An identity is true for every real parameter.", "L\\subset\\Pi,\\qquad L\\cap\\Pi=L")]),
 ];
 
-export const tests: Assessment[] = [
+const legacyTests: Assessment[] = [
   { id: "test-representation", number: "01", title: "Lines and plane construction", description: "A 40-mark unit test on line equations, plane construction, vector reasoning, and verification.", kind: "test", mode: "exam", timeLimit: "60 min", instructions: assessmentInstructions, questions: academicQuestions(testOneQuestions) },
   { id: "test-spatial-reasoning", number: "02", title: "Intersections, distances, and angles", description: "A 40-mark unit test on spatial systems, exact measurement, and complete geometric justification.", kind: "test", mode: "exam", timeLimit: "65 min", instructions: assessmentInstructions, questions: academicQuestions(testTwoQuestions) },
 ];
@@ -1513,3 +1520,8 @@ export const katcLabels: Record<KATCCategory, string> = {
   T: "Thinking / Inquiry",
   C: "Communication",
 };
+
+// The live course has section homework and one quiz and test for each unit group.
+export const homeworkSets: HomeworkSet[] = sectionHomeworkSets;
+export const quizzes: Assessment[] = unitQuizzes;
+export const tests: Assessment[] = unitTests;

@@ -30,11 +30,11 @@ export function VideoLessonPlayer({ lesson }: VideoLessonPlayerProps) {
     if (videoRef.current) videoRef.current.currentTime = seconds;
   };
 
+  if (!playable) return <p className="py-6 text-base text-zinc-400">Video coming soon.</p>;
   return (
-    <article className="overflow-hidden border border-white/10 bg-[#111]">
-      {playable ? <div className="aspect-video bg-black">
-        {mediaUrl ? <video ref={videoRef} controls preload="metadata" playsInline src={mediaUrl} className="h-full w-full" aria-label={lesson.title} /> : (
-        <iframe
+    <div>
+      <div className="aspect-video overflow-hidden border border-white/10 bg-black">
+        {mediaUrl ? <video ref={videoRef} controls preload="metadata" playsInline src={mediaUrl} className="h-full w-full" aria-label={lesson.title} /> : <iframe
           key={startAt}
           className="h-full w-full"
           src={`https://www.youtube-nocookie.com/embed/${youtubeId}?start=${startAt}&rel=0`}
@@ -43,62 +43,13 @@ export function VideoLessonPlayer({ lesson }: VideoLessonPlayerProps) {
           referrerPolicy="strict-origin-when-cross-origin"
           allowFullScreen
           loading="lazy"
-        />
-        )}
-      </div> : <div className="border-b border-white/10 bg-[#0c0c0c] p-6 sm:p-8">
-        <p className="text-sm font-semibold text-sky-200">Class recording pending</p>
-        <p className="mt-3 max-w-3xl text-base leading-7 text-zinc-300">The teaching team has not added this recording yet. The written lesson and worked examples are available below.</p>
-      </div>}
-      <div className="grid lg:grid-cols-[1fr_300px]">
-        <div className="p-5 sm:p-6">
-          <p className="text-xs font-semibold uppercase tracking-wide text-sky-300">{lesson.duration}</p>
-          <h3 className="mt-3 text-xl font-semibold tracking-tight">{lesson.title}</h3>
-          <p className="mt-3 text-base leading-7 text-zinc-300">{lesson.description}</p>
-          <details className="mt-5 border-t border-white/10 pt-4">
-            <summary className="cursor-pointer text-sm font-semibold text-zinc-200">Learning objectives</summary>
-            <ol className="mt-4 space-y-3">
-              {lesson.takeaways.map((takeaway, index) => (
-                <li key={takeaway} className="grid grid-cols-[24px_1fr] gap-3 text-base leading-7 text-zinc-300">
-                  <span className="font-mono text-sm text-sky-300">{index + 1}</span>
-                  <span>{takeaway}</span>
-                </li>
-              ))}
-            </ol>
-          </details>
-        </div>
-        <div className="border-t border-white/10 p-5 lg:border-l lg:border-t-0">
-          <details open={playable}>
-          <summary className="cursor-pointer text-sm font-semibold text-zinc-200">{playable ? "Video chapters" : "Planned coverage"}</summary>
-          <div className="mt-4 space-y-1">
-            {lesson.timestamps.map((timestamp) => (
-              <button
-                type="button"
-                key={timestamp.time}
-                onClick={() => seek(timestamp.seconds)}
-                disabled={!playable}
-                aria-pressed={startAt === timestamp.seconds}
-                className={`grid w-full grid-cols-[48px_1fr] gap-3 border px-3 py-3 text-left text-sm leading-6 transition ${
-                  startAt === timestamp.seconds
-                    ? "border-sky-400/35 bg-sky-400/[0.06] text-zinc-200"
-                    : "border-transparent text-zinc-300 hover:border-white/10 hover:text-zinc-100"
-                }`}
-              >
-                <span className="font-mono text-xs leading-6 text-sky-300">{timestamp.time}</span>
-                <span>{timestamp.label}</span>
-              </button>
-            ))}
-          </div>
-          {source && playable && <a
-            href={source}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-5 block border-t border-white/10 pt-4 text-xs font-semibold text-zinc-400 transition hover:text-sky-300"
-          >
-            Open recording
-          </a>}
-          </details>
-        </div>
+        />}
       </div>
-    </article>
+      <p className="mt-4 text-base text-zinc-300">{lesson.title}</p>
+      {lesson.timestamps.length > 0 && <details className="mt-4 border-t border-white/10 pt-4">
+        <summary className="cursor-pointer text-sm font-semibold text-zinc-400">Video chapters</summary>
+        <div className="mt-3 grid gap-1 sm:grid-cols-2">{lesson.timestamps.map((timestamp) => <button key={timestamp.time} type="button" onClick={() => seek(timestamp.seconds)} className="min-h-11 px-3 py-2 text-left text-sm text-zinc-300 hover:text-sky-200"><span className="mr-3 font-mono text-sky-200">{timestamp.time}</span>{timestamp.label}</button>)}</div>
+      </details>}
+    </div>
   );
 }

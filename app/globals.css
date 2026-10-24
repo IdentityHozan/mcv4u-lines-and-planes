@@ -1,5 +1,25 @@
 @import "tailwindcss";
 
+main:has(.teaching-page) { padding-top: 0; }
+.teaching-page { min-height: 100dvh; width: 100%; background: #0a0a0a; overflow-y: auto; }
+.teaching-page:fullscreen { height: 100dvh; }
+.teaching-toolbar, .teaching-footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; max-width: 1440px; margin-inline: auto; padding: 1.1rem clamp(1rem, 4vw, 3.5rem); }
+.teaching-toolbar { border-bottom: 1px solid rgba(255,255,255,.1); }
+.teaching-content { max-width: 1440px; margin-inline: auto; padding: clamp(2rem,5vh,4rem) clamp(1rem,4vw,3.5rem); min-height: calc(100dvh - 172px); scroll-margin-top: 0; }
+.teaching-small-button { border: 1px solid rgba(255,255,255,.16); padding: .45rem .8rem; font-size: .85rem; color: #d4d4d8; cursor: pointer; }
+.teaching-small-button:hover, .teaching-small-button[aria-pressed="true"] { border-color: #7dd3fc; color: #bae6fd; }
+.teaching-demo { min-width: 0; margin: 0; }
+.teaching-working-step { animation: teaching-appear .45s ease both; }
+.teaching-page .math-content { max-width: 100%; overflow-x: auto; }
+.teaching-page mjx-container[display="true"] { margin: .6em 0 !important; }
+.teaching-footer { border-top: 1px solid rgba(255,255,255,.1); }
+.teaching-clean .teaching-content { min-height: calc(100dvh - 70px); padding-top: clamp(2rem,7vh,5rem); }
+.teaching-clean-controls { display: flex; justify-content: center; gap: .6rem; padding: 1rem; opacity: .12; transition: opacity .2s; }
+.teaching-clean-controls:hover, .teaching-clean-controls:focus-within { opacity: 1; }
+@keyframes teaching-appear { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .teaching-working-step { animation: none; } }
+@media (max-width: 640px) { .teaching-toolbar { flex-wrap: wrap; gap: .6rem; } .teaching-toolbar > label { flex-basis: calc(100% - 100px); } .teaching-content { min-height: calc(100dvh - 215px); } }
+
 :root {
   --font-geist-sans: "Segoe UI Variable", "Segoe UI", Inter, Arial, sans-serif;
   --font-geist-mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
@@ -231,6 +251,8 @@ a {
   padding-block: 0.15rem;
   white-space: normal;
 }
+
+.math-content mjx-container[jax="SVG"] > svg { display: inline-block; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

@@ -4,6 +4,8 @@ import { Canvas, type ThreeEvent, useFrame, useThree } from "@react-three/fiber"
 import { Html, Line, OrbitControls } from "@react-three/drei";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import { WebGLSurface } from "./WebGLSurface";
+import { ProjectedVectors } from "./ProjectedGeometry";
 import type { DisplayVector } from "./VectorCanvas2D";
 import { formatNumber, vectorMagnitude } from "./vectorMath";
 
@@ -196,9 +198,9 @@ export function VectorCanvas3D(props: VectorCanvas3DProps) {
 
   return (
     <div className="h-full min-h-[360px] w-full" role="img" aria-label="Three-dimensional coordinate grid showing the current vectors from the origin">
-      <Canvas camera={{ position: [12, 9, 12], fov: 48 }} dpr={[1, 1.75]} gl={{ antialias: true }}>
+      <WebGLSurface fallback={<ProjectedVectors vectors={props.vectors} view={props.cameraView} showNumbers={props.showNumbers} onSelect={props.onSelectVector}/>}><Canvas camera={{ position: [12, 9, 12], fov: 48 }} dpr={[1, 1.75]} gl={{ antialias: true }}>
         <Scene {...props} extent={extent} />
-      </Canvas>
+      </Canvas></WebGLSurface>
     </div>
   );
 }

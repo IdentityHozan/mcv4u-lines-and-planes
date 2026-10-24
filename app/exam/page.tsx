@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { AssessmentHub } from "@/components/assessments/AssessmentHub";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
@@ -9,10 +8,9 @@ export default function ExamPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Assessment stage 3"
+        eyebrow="Lines and Planes"
         title="Final examination"
-        description="A comprehensive 24-question paper covering lines, planes, intersections, angles, and distances. Complete the full examination before reviewing the worked solutions and marking criteria."
-        actions={<Link href="/tests" className="secondary-action">Complete the unit tests first</Link>}
+        description="Sections 8.1 to 8.6 and 9.1 to 9.6."
       />
       <ScrollReveal className="section-shell page-section"><AssessmentHub variant="exam" /></ScrollReveal>
     </>

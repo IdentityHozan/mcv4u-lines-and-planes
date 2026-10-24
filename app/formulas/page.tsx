@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/ui/SiteLink";
 import { DownloadFormulaSheetButton } from "@/components/lessons/DownloadFormulaSheetButton";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { MathJaxRenderer } from "@/components/ui/MathJaxRenderer";

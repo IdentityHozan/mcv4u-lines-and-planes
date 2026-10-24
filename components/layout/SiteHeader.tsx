@@ -1,15 +1,15 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/ui/SiteLink";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 const navigation = [
   { href: "/", label: "Home" },
-  { href: "/lessons", label: "Lessons & videos" },
+  { href: "/lessons", label: "Lessons" },
   { href: "/visualizer", label: "Visualizer" },
   { href: "/calculator", label: "Calculator" },
-  { href: "/practice", label: "Practice" },
+  { href: "/practice", label: "Homework" },
   { href: "/assessments", label: "Quizzes" },
   { href: "/tests", label: "Tests" },
   { href: "/exam", label: "Exam" },
@@ -24,6 +24,8 @@ function isCurrent(pathname: string, href: string) {
 export function SiteHeader() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  if (pathname.startsWith("/teach/")) return null;
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#0a0a0a]/95 backdrop-blur-xl">

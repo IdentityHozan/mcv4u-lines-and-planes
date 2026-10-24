@@ -13,12 +13,17 @@ import {
   type Vector3Value,
 } from "./Interactive3DPlane";
 
-type Experiment = "line-plane" | "two-planes" | "distance";
+type Experiment = LessonExperiment;
+import { geometryPresets, getGeometryPreset, radical, solveThreePlanes, type GeometryPreset, type LessonExperiment } from "./lessonGeometry";
+
 type MotionMode = "approach" | "travel" | "slide-plane";
 
 const EPSILON = 1e-8;
 
 const experimentOptions: Array<{ id: Experiment; label: string; description: string }> = [
+  { id: "line", label: "Line equations", description: "Move from a known point along a direction." },
+  { id: "plane", label: "Plane equations and sketches", description: "Explore spans, normals, intercepts and traces." },
+  { id: "three-planes", label: "Three planes", description: "Find the simultaneous solution set." },
   { id: "line-plane", label: "Line and plane", description: "See whether a line crosses, misses, or lies inside a plane." },
   { id: "two-planes", label: "Two planes", description: "Compare intersecting, parallel, and coincident planes." },
   { id: "distance", label: "Shortest distance", description: "Show the perpendicular path from a point to a line or plane." },
@@ -81,12 +86,12 @@ function formatPlane(normal: Vector3Value, constant: number) {
   return `${left}=${formatNumber(constant)}`;
 }
 
-function VectorFields({ label, value, onChange }: { label: string; value: Vector3Value; onChange: (value: Vector3Value) => void }) {
+function VectorFields({ label, value, onChange, dimension = 3 }: { label: string; value: Vector3Value; onChange: (value: Vector3Value) => void; dimension?:2|3 }) {
   return (
     <fieldset>
       <legend className="mb-3 text-sm font-semibold text-zinc-200">{label}</legend>
-      <div className="grid grid-cols-3 gap-2">
-        {(["X", "Y", "Z"] as const).map((axis, index) => (
+      <div className={`grid ${dimension===2?"grid-cols-2":"grid-cols-3"} gap-2`}>
+        {(["X", "Y", "Z"] as const).slice(0,dimension).map((axis, index) => (
           <NumberStepper
             key={axis}
             compact
@@ -115,31 +120,45 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
 
 type VectorLabProps = {
   embedded?: boolean;
+  initialSection?: string;
 };
 
-export function VectorLab({ embedded = false }: VectorLabProps) {
+export function VectorLab({ embedded = false, initialSection }: VectorLabProps) {
+  const initialPreset = getGeometryPreset(initialSection) ?? geometryPresets[0];
+  const [section, setSection] = useState(initialPreset.section);
+  const lesson = getGeometryPreset(section) ?? initialPreset;
+  const [planeDefinition, setPlaneDefinition] = useState<"normal"|"spans">(initialPreset.section === "8.4" ? "spans" : "normal");
+  const [planeAnchor,setPlaneAnchor] = useState<Vector3Value>(initialPreset.planePoint);
+  const [spanA,setSpanA] = useState<Vector3Value>(initialPreset.spanA);
+  const [spanB,setSpanB] = useState<Vector3Value>(initialPreset.spanB);
+  const [planeS,setPlaneS] = useState(0);
+  const [planeT,setPlaneT] = useState(0);
+  const [showTraces,setShowTraces] = useState(Boolean(initialPreset.traces));
+  const [showPlotPoint,setShowPlotPoint] = useState(Boolean(initialPreset.plotPoint));
+  const [thirdNormal,setThirdNormal] = useState<Vector3Value>([0,0,1]);
+  const [thirdConstant,setThirdConstant] = useState(3);
   const workspaceRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef(0);
   const travelDirectionRef = useRef(1);
   const planeDirectionRef = useRef(1);
 
-  const [experiment, setExperiment] = useState<Experiment>("line-plane");
-  const [linePoint, setLinePoint] = useState<Vector3Value>([1, 1, -1]);
-  const [lineDirection, setLineDirection] = useState<Vector3Value>([2, -1, 1]);
-  const [planeNormal, setPlaneNormal] = useState<Vector3Value>([1, 1, 1]);
-  const [planeConstant, setPlaneConstant] = useState(2);
-  const [secondPlaneNormal, setSecondPlaneNormal] = useState<Vector3Value>([1, -1, 1]);
-  const [secondPlaneConstant, setSecondPlaneConstant] = useState(0);
-  const [externalPoint, setExternalPoint] = useState<Vector3Value>([3, 2, 0]);
-  const [distanceMode, setDistanceMode] = useState<Exclude<DistanceMode, "none">>("point-line");
+  const [experiment, setExperiment] = useState<Experiment>(initialPreset.experiment);
+  const [linePoint, setLinePoint] = useState<Vector3Value>(initialPreset.linePoint);
+  const [lineDirection, setLineDirection] = useState<Vector3Value>(initialPreset.direction);
+  const [planeNormal, setPlaneNormal] = useState<Vector3Value>(initialPreset.normal);
+  const [planeConstant, setPlaneConstant] = useState(initialPreset.constant);
+  const [secondPlaneNormal, setSecondPlaneNormal] = useState<Vector3Value>(initialPreset.secondNormal);
+  const [secondPlaneConstant, setSecondPlaneConstant] = useState(initialPreset.secondConstant);
+  const [externalPoint, setExternalPoint] = useState<Vector3Value>(initialPreset.point);
+  const [distanceMode, setDistanceMode] = useState<Exclude<DistanceMode, "none">>(initialPreset.distanceMode);
   const [parameter, setParameter] = useState(0);
 
-  const [motionMode, setMotionMode] = useState<MotionMode>("approach");
+  const [motionMode, setMotionMode] = useState<MotionMode>(initialPreset.experiment === "line" ? "travel" : "approach");
   const [motionProgress, setMotionProgress] = useState(0);
   const [motionSpeed, setMotionSpeed] = useState(1);
   const [animating, setAnimating] = useState(false);
 
-  const [cameraView, setCameraView] = useState<CameraView>("isometric");
+  const [cameraView, setCameraView] = useState<CameraView>(["8.1","8.2"].includes(initialPreset.section) ? "front" : "isometric");
   const [gridSize, setGridSize] = useState(18);
   const [showNumbers, setShowNumbers] = useState(true);
   const [showAxes, setShowAxes] = useState(true);
@@ -156,6 +175,16 @@ export function VectorLab({ embedded = false }: VectorLabProps) {
   const [panelOpen, setPanelOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  const applyLesson = (preset: GeometryPreset) => {
+    setSection(preset.section); setExperiment(preset.experiment);setLinePoint(preset.linePoint);setLineDirection(preset.direction);
+    setPlaneNormal(preset.normal);setPlaneConstant(preset.constant);setSecondPlaneNormal(preset.secondNormal);setSecondPlaneConstant(preset.secondConstant);
+    setExternalPoint(preset.point);setDistanceMode(preset.distanceMode);setPlaneAnchor(preset.planePoint);setSpanA(preset.spanA);setSpanB(preset.spanB);
+    setPlaneDefinition(preset.section==="8.4"?"spans":"normal");setPlaneS(0);setPlaneT(0);setParameter(0);setAnimating(false);setMotionProgress(0);progressRef.current=0;
+    setMotionMode(preset.experiment==="line"?"travel":"approach");setShowTraces(Boolean(preset.traces));setShowPlotPoint(Boolean(preset.plotPoint));setSelectedPoint(null);setGridEditing(false);
+    setCameraView(["8.1","8.2"].includes(preset.section)?"front":"isometric");setThirdNormal([0,0,1]);setThirdConstant(3);
+  };
+  const changePlaneSpans = (anchor:Vector3Value, first:Vector3Value, second:Vector3Value) => {setPlaneAnchor(anchor);setSpanA(first);setSpanB(second);const normal=cross(first,second);setPlaneNormal(normal);setPlaneConstant(dot(normal,anchor));};
+  const system = useMemo(() => solveThreePlanes([planeNormal,secondPlaneNormal,thirdNormal],[planeConstant,secondPlaneConstant,thirdConstant]),[planeNormal,secondPlaneNormal,thirdNormal,planeConstant,secondPlaneConstant,thirdConstant]);
   const linePlane = useMemo(() => {
     if (magnitude(lineDirection) < EPSILON) return { type: "invalid-line" as const };
     if (magnitude(planeNormal) < EPSILON) return { type: "invalid-plane" as const };
@@ -207,6 +236,13 @@ export function VectorLab({ embedded = false }: VectorLabProps) {
   const planeDistance = magnitude(planeNormal) < EPSILON ? null : Math.abs(residual) / magnitude(planeNormal);
 
   const headline = useMemo(() => {
+    if (experiment === "line") {
+      if(magnitude(lineDirection)<EPSILON)return {title:"Enter a nonzero direction",detail:"A zero direction produces a point, rather than a line.",math:""};
+      return {title:"One point and one direction",detail:`At t = ${formatNumber(parameter)}, P = (${formatVector(add(linePoint,scale(lineDirection,parameter)))}).`,math:`\\[\\vec r=[${formatVector(linePoint)}]+t[${formatVector(lineDirection)}],\\quad t\\in\\mathbb R\\]`};
+    }
+    if(experiment === "plane")return {title:magnitude(planeNormal)<EPSILON?"Choose independent spans or a nonzero normal":"A plane has two independent directions",detail:planeDefinition==="spans"?"Vary s while holding t fixed, then vary t while holding s fixed.":"The normal is perpendicular to every displacement within the plane.",math:`\\[${formatPlane(planeNormal,planeConstant)}\\]`};
+    if(experiment === "three-planes"&&[planeNormal,secondPlaneNormal,thirdNormal].some(n=>magnitude(n)<EPSILON))return {title:"Enter three nonzero normals",detail:"Each equation must represent a plane.",math:""};
+    if(experiment === "three-planes")return {title:system.type==="none"?"No common points":system.type==="point"?"One common point":system.type==="line"?"A common line":"A common plane",detail:`The simultaneous system has ${system.rank} independent constraints.${system.type==="line"?" The green line satisfies all three constraints.":""}`,math:system.point?`\\[P_0=(${formatVector(system.point)})\\]`:""};
     if (experiment === "line-plane") {
       if (linePlane.type === "point") return { title: "One intersection", detail: `The line reaches the plane at t = ${formatNumber(linePlane.t)}.`, math: `\\[P=(${formatVector(linePlane.point)})\\]` };
       if (linePlane.type === "contained") return { title: "The line lies in the plane", detail: "Every point on the line satisfies the plane equation.", math: String.raw`\[\vec n\cdot\vec d=0\]` };
@@ -220,8 +256,8 @@ export function VectorLab({ embedded = false }: VectorLabProps) {
       return { title: "Enter valid normals", detail: "Both plane normals must be non-zero.", math: String.raw`\[\vec n_1\ne\vec0,\quad\vec n_2\ne\vec0\]` };
     }
     if (!distanceResult) return { title: "Enter a valid direction", detail: "A distance target needs a valid line or plane.", math: "" };
-    return { title: `${formatNumber(distanceResult.distance)} units`, detail: distanceMode === "point-line" ? "Shortest distance from the point to the line." : "Shortest distance from the point to the plane.", math: `\\[H=(${formatVector(distanceResult.foot)})\\]` };
-  }, [distanceMode, distanceResult, experiment, linePlane, planePlane]);
+    return { title: "Exact perpendicular distance", detail: distanceMode === "point-line" ? "Shortest distance from the point to the line." : "Shortest distance from the point to the plane.", math: `\\[d=${distanceMode==="point-line"?`\\frac{${radical(dot(cross(subtract(externalPoint,linePoint),lineDirection),cross(subtract(externalPoint,linePoint),lineDirection)))}}{${radical(dot(lineDirection,lineDirection))}}`:`\\frac{${formatNumber(Math.abs(dot(planeNormal,externalPoint)-planeConstant))}}{${radical(dot(planeNormal,planeNormal))}}`}\\approx ${formatNumber(distanceResult.distance)},\\quad H=(${formatVector(distanceResult.foot)})\\]` };
+  }, [distanceMode, distanceResult, experiment, linePlane, planePlane, lineDirection, linePoint, parameter, planeNormal, planeConstant, planeDefinition, system, externalPoint]);
 
   useEffect(() => {
     progressRef.current = motionProgress;
@@ -286,24 +322,7 @@ export function VectorLab({ embedded = false }: VectorLabProps) {
     return () => cancelAnimationFrame(frame);
   }, []);
 
-  const reset = () => {
-    setExperiment("line-plane");
-    setLinePoint([1, 1, -1]);
-    setLineDirection([2, -1, 1]);
-    setPlaneNormal([1, 1, 1]);
-    setPlaneConstant(2);
-    setSecondPlaneNormal([1, -1, 1]);
-    setSecondPlaneConstant(0);
-    setExternalPoint([3, 2, 0]);
-    setDistanceMode("point-line");
-    setParameter(0);
-    setMotionMode("approach");
-    setMotionProgress(0);
-    progressRef.current = 0;
-    setAnimating(false);
-    setSelectedPoint(null);
-    setGridEditing(false);
-  };
+  const reset = () => applyLesson(lesson);
 
   const applyLinePreset = (preset: "cross" | "parallel" | "contained") => {
     setAnimating(false);
@@ -345,7 +364,7 @@ export function VectorLab({ embedded = false }: VectorLabProps) {
     else await workspaceRef.current?.requestFullscreen();
   };
 
-  const sceneMode = experiment === "two-planes" || (experiment === "distance" && distanceMode === "point-plane") ? "plane" : experiment === "distance" ? "line" : "both";
+  const sceneMode = experiment === "plane" || experiment === "three-planes" || experiment === "two-planes" || (experiment === "distance" && distanceMode === "point-plane") ? "plane" : experiment === "distance" || experiment === "line" ? "line" : "both";
   const sceneDistanceMode: DistanceMode = experiment === "distance" ? distanceMode : "none";
   const showApproachReadout = experiment === "line-plane" && motionMode === "approach" && linePlane.type === "point";
 
@@ -371,7 +390,7 @@ export function VectorLab({ embedded = false }: VectorLabProps) {
             lineDirection={lineDirection}
             planeNormal={planeNormal}
             planeConstant={planeConstant}
-            secondPlaneEnabled={experiment === "two-planes"}
+            secondPlaneEnabled={experiment === "two-planes" || experiment === "three-planes"}
             secondPlaneNormal={secondPlaneNormal}
             secondPlaneConstant={secondPlaneConstant}
             parameter={currentParameter}
@@ -381,7 +400,7 @@ export function VectorLab({ embedded = false }: VectorLabProps) {
             showAxes={showAxes}
             showSideGrids={showSideGrids}
             showLineSamples={showSamples && sceneMode !== "plane"}
-            showCoordinateGuides={showGuides && sceneMode !== "plane"}
+            showCoordinateGuides={showGuides}
             showGridCursor
             showNormalVectors={showNormals}
             showObjectLabels={showLabels}
@@ -389,6 +408,9 @@ export function VectorLab({ embedded = false }: VectorLabProps) {
             distanceMode={sceneDistanceMode}
             externalPoint={externalPoint}
             planeDefinitionMode="normal"
+            showPlaneSpans={experiment==="plane"&&planeDefinition==="spans"} planeAnchor={planeAnchor} planeSpanA={spanA} planeSpanB={spanB} planeParameterS={planeS} planeParameterT={planeT}
+            showTraces={experiment==="plane"&&showTraces} showExternalPoint={experiment==="plane"&&showPlotPoint}
+            thirdPlaneEnabled={experiment==="three-planes"} thirdPlaneNormal={thirdNormal} thirdPlaneConstant={thirdConstant} commonSet={system.type} commonPoint={system.point} commonDirection={system.direction}
             gridEditingEnabled={gridEditing}
             gridPlacementTarget={gridTarget}
             gridPlacementHeight={gridHeight}
@@ -432,17 +454,21 @@ export function VectorLab({ embedded = false }: VectorLabProps) {
 
                 <div className="space-y-7 p-5">
                   <section>
-                    <p className="micro-label text-sky-300">Step 1</p>
-                    <h2 className="mt-2 text-lg font-semibold">Choose an experiment</h2>
-                    <div className="mt-4 space-y-2">
-                      {experimentOptions.map((option) => <button key={option.id} type="button" onClick={() => { setExperiment(option.id); setAnimating(false); setMotionProgress(0); progressRef.current = 0; setGridEditing(false); }} aria-pressed={experiment === option.id} className={`w-full border p-4 text-left transition ${experiment === option.id ? "border-sky-400/40 bg-sky-400/[0.07]" : "border-white/10 bg-[#0b0b0b] hover:border-white/25"}`}><span className={`block text-sm font-semibold ${experiment === option.id ? "text-sky-200" : "text-zinc-200"}`}>{option.label}</span><span className="mt-1 block text-xs leading-5 text-zinc-500">{option.description}</span></button>)}
-                    </div>
+                    <label className="text-sm font-semibold text-sky-200">Lesson example<select value={section} onChange={event=>{const next=getGeometryPreset(event.target.value);if(next)applyLesson(next);}} className="field-control mt-3 min-h-12 text-sm">{geometryPresets.map(preset=><option key={preset.section} value={preset.section}>{preset.section} {preset.title}</option>)}</select></label>
+                    <p className="mt-3 text-sm leading-6 text-zinc-300">{lesson.instruction}</p>
+                    <label className="mt-5 block text-sm font-semibold text-zinc-200">Explore<select value={experiment} onChange={event=>{const value=event.target.value as Experiment;setExperiment(value);setAnimating(false);setMotionProgress(0);setMotionMode(value==="line"?"travel":"approach");setGridEditing(false);}} className="field-control mt-2 min-h-12 text-sm">{experimentOptions.map(option=><option key={option.id} value={option.id}>{option.label}</option>)}</select></label>
                   </section>
 
                   <section className="border-t border-white/10 pt-6">
                     <p className="micro-label text-sky-300">Step 2</p>
                     <h2 className="mt-2 text-lg font-semibold">Change the values</h2>
 
+                    {experiment === "line" && <div className="mt-4 space-y-6"><VectorFields dimension={["8.1","8.2"].includes(section)?2:3} label="Known point A" value={linePoint} onChange={setLinePoint}/><VectorFields dimension={["8.1","8.2"].includes(section)?2:3} label="Direction m" value={lineDirection} onChange={setLineDirection}/><p className="text-sm leading-6 text-zinc-400">For a line in R², keep the point and direction z-components at zero. Vary the same t in every coordinate.</p></div>}
+                    {experiment === "plane" && <div className="mt-4 space-y-6">
+                      <label className="block text-sm text-zinc-200">Define the plane<select value={planeDefinition} onChange={event=>{const next=event.target.value as "normal"|"spans";setPlaneDefinition(next);if(next==="spans")changePlaneSpans(planeAnchor,spanA,spanB);}} className="field-control mt-2 min-h-11"><option value="spans">Point and two span vectors</option><option value="normal">Cartesian coefficients and normal</option></select></label>
+                      {planeDefinition==="spans"?<><VectorFields label="Known plane point A" value={planeAnchor} onChange={value=>changePlaneSpans(value,spanA,spanB)}/><VectorFields label="Span a" value={spanA} onChange={value=>changePlaneSpans(planeAnchor,value,spanB)}/><VectorFields label="Span b" value={spanB} onChange={value=>changePlaneSpans(planeAnchor,spanA,value)}/><NumberStepper label="Parameter s" value={planeS} step={0.25} onChange={setPlaneS}/><NumberStepper label="Parameter t" value={planeT} step={0.25} onChange={setPlaneT}/></>:<><VectorFields label="Plane normal [A, B, C]" value={planeNormal} onChange={setPlaneNormal}/><NumberStepper label="Right-hand constant k" value={planeConstant} onChange={setPlaneConstant}/></>}
+                      <Toggle label="Coordinate-plane traces and intercepts" checked={showTraces} onChange={setShowTraces}/><Toggle label="Plot a point with coordinate guides" checked={showPlotPoint} onChange={setShowPlotPoint}/>{showPlotPoint&&<VectorFields label="Point P" value={externalPoint} onChange={setExternalPoint}/>}
+                    </div>}
                     {experiment === "line-plane" && (
                       <div className="mt-4 space-y-6">
                         <div className="grid grid-cols-3 gap-2">{(["cross", "parallel", "contained"] as const).map((preset) => <button key={preset} type="button" onClick={() => applyLinePreset(preset)} className="min-h-10 border border-white/10 bg-[#0b0b0b] px-2 text-[10px] font-semibold capitalize text-zinc-400 hover:border-sky-400/35 hover:text-zinc-100">{preset === "cross" ? "Crossing" : preset}</button>)}</div>
@@ -453,13 +479,14 @@ export function VectorLab({ embedded = false }: VectorLabProps) {
                       </div>
                     )}
 
-                    {experiment === "two-planes" && (
+                    {(experiment === "two-planes"||experiment === "three-planes") && (
                       <div className="mt-4 space-y-6">
-                        <div className="grid grid-cols-3 gap-2">{(["intersect", "parallel", "same"] as const).map((preset) => <button key={preset} type="button" onClick={() => applyPlanePreset(preset)} className="min-h-10 border border-white/10 bg-[#0b0b0b] px-2 text-[10px] font-semibold capitalize text-zinc-400 hover:border-sky-400/35 hover:text-zinc-100">{preset === "intersect" ? "Intersecting" : preset === "same" ? "Same plane" : "Parallel"}</button>)}</div>
+                        {experiment === "two-planes" && <div className="grid grid-cols-3 gap-2">{(["intersect", "parallel", "same"] as const).map((preset) => <button key={preset} type="button" onClick={() => applyPlanePreset(preset)} className="min-h-10 border border-white/10 bg-[#0b0b0b] px-2 text-[10px] font-semibold capitalize text-zinc-400 hover:border-sky-400/35 hover:text-zinc-100">{preset === "intersect" ? "Intersecting" : preset === "same" ? "Same plane" : "Parallel"}</button>)}</div>}
                         <VectorFields label="Plane 1 normal" value={planeNormal} onChange={setPlaneNormal} />
                         <NumberStepper label="Plane 1 constant" value={planeConstant} onChange={setPlaneConstant} />
                         <VectorFields label="Plane 2 normal" value={secondPlaneNormal} onChange={setSecondPlaneNormal} />
                         <NumberStepper label="Plane 2 constant" value={secondPlaneConstant} onChange={setSecondPlaneConstant} />
+                        {experiment==="three-planes"&&<><VectorFields label="Plane 3 normal" value={thirdNormal} onChange={setThirdNormal}/><NumberStepper label="Plane 3 constant" value={thirdConstant} onChange={setThirdConstant}/></>}
                       </div>
                     )}
 
@@ -472,11 +499,11 @@ export function VectorLab({ embedded = false }: VectorLabProps) {
                     )}
                   </section>
 
-                  {experiment === "line-plane" && (
+                  {(experiment === "line-plane"||experiment === "line") && (
                     <section className="border-t border-white/10 pt-6">
                       <p className="micro-label text-sky-300">Step 3</p>
                       <h2 className="mt-2 text-lg font-semibold">Animate the geometry</h2>
-                      <select value={motionMode} onChange={(event) => { setMotionMode(event.target.value as MotionMode); resetMotion(); }} className="field-control mt-4 min-h-11 text-sm"><option value="approach">Approach the intersection</option><option value="travel">Move along the line</option><option value="slide-plane">Slide the plane</option></select>
+                      <select value={motionMode} onChange={(event) => { setMotionMode(event.target.value as MotionMode); resetMotion(); }} className="field-control mt-4 min-h-11 text-sm">{experiment==="line-plane"&&<option value="approach">Approach the intersection</option>}<option value="travel">Move along the line</option>{experiment==="line-plane"&&<option value="slide-plane">Slide the plane</option>}</select>
                       <div className="mt-4 grid grid-cols-2 gap-2"><button type="button" onClick={() => setAnimating((current) => !current)} disabled={motionMode === "approach" && linePlane.type !== "point"} className="primary-action text-xs disabled:cursor-not-allowed disabled:opacity-35">{animating ? "Pause" : "Play"}</button><button type="button" onClick={resetMotion} className="secondary-action text-xs">Restart</button></div>
                       {motionMode === "approach" && <label className="mt-4 block"><span className="mb-2 flex justify-between text-[11px] text-zinc-500"><span>Animation progress</span><span>{Math.round(motionProgress * 100)}%</span></span><input type="range" min="0" max="1" step="0.01" value={motionProgress} onChange={(event) => { setAnimating(false); setMotionProgress(Number(event.target.value)); }} className="range-input w-full" /></label>}
                       {motionMode === "travel" && <NumberStepper label="Parameter t" value={parameter} step={0.25} onChange={(value) => { setAnimating(false); setParameter(value); }} />}
@@ -509,9 +536,12 @@ export function VectorLab({ embedded = false }: VectorLabProps) {
 
                   <section className="border-t border-white/10 pt-6">
                     <p className="micro-label text-sky-300">Equations</p>
-                    {(experiment === "line-plane" || (experiment === "distance" && distanceMode === "point-line")) && <MathJaxRenderer math={`\\[\\vec r=(${formatVector(linePoint)})+t(${formatVector(lineDirection)})\\]`} className="mt-3 text-sm text-zinc-200" />}
-                    {(experiment !== "distance" || distanceMode === "point-plane") && <MathJaxRenderer math={`\\[${formatPlane(planeNormal, planeConstant)}\\]`} className="mt-2 text-sm text-sky-200" />}
-                    {experiment === "two-planes" && <MathJaxRenderer math={`\\[${formatPlane(secondPlaneNormal, secondPlaneConstant)}\\]`} className="mt-2 text-sm text-zinc-200" />}
+                    {(experiment === "line" || experiment === "line-plane" || (experiment === "distance" && distanceMode === "point-line")) && <MathJaxRenderer math={`\\[\\vec r=(${formatVector(linePoint)})+t(${formatVector(lineDirection)})\\]`} className="mt-3 text-sm text-zinc-200" />}
+                    {(experiment !== "line"&&(experiment !== "distance" || distanceMode === "point-plane")) && <MathJaxRenderer math={`\\[${formatPlane(planeNormal, planeConstant)}\\]`} className="mt-2 text-sm text-sky-200" />}
+                    {(experiment === "two-planes"||experiment === "three-planes") && <MathJaxRenderer math={`\\[${formatPlane(secondPlaneNormal, secondPlaneConstant)}\\]`} className="mt-2 text-sm text-zinc-200" />}
+                    {experiment==="plane"&&planeDefinition==="spans"&&<MathJaxRenderer math={`\\[\\vec r=[${formatVector(planeAnchor)}]+s[${formatVector(spanA)}]+t[${formatVector(spanB)}]\\]`} className="mt-3 text-sm text-zinc-200"/>}
+                    {experiment==="line"&&<MathJaxRenderer math={`\\[x=${formatNumber(linePoint[0])}+t(${formatNumber(lineDirection[0])}),\\quad y=${formatNumber(linePoint[1])}+t(${formatNumber(lineDirection[1])}),\\quad z=${formatNumber(linePoint[2])}+t(${formatNumber(lineDirection[2])})\\]`} className="mt-3 text-sm text-zinc-200"/>}
+                    {experiment==="three-planes"&&<MathJaxRenderer math={`\\[${formatPlane(thirdNormal,thirdConstant)}\\]`} className="mt-3 text-sm text-zinc-200"/>}
                   </section>
 
                   <details className="border border-white/10 bg-[#0b0b0b] p-4">

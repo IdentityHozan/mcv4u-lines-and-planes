@@ -22,7 +22,6 @@ import {
   rejectVector,
   relationship,
   scaleVector,
-  squaredMagnitude,
   subtractVectors,
   vectorMagnitude,
   type VectorDimension,
@@ -34,6 +33,7 @@ export type VectorWorkbenchProps = {
   embedded?: boolean;
   vectorOnly?: boolean;
   title?: string;
+  initialSection?: string;
 };
 type OperationId =
   | "magnitude"
@@ -149,10 +149,11 @@ function VectorInput({ entry, dimension, onChange }: { entry: VectorEntry; dimen
 export function VectorWorkbench({
   embedded = false,
   vectorOnly = false,
-  title = "Vector Calculator",
+  title = "Lines and Planes Calculator",
+  initialSection,
 }: VectorWorkbenchProps = {}) {
   const workspaceRef = useRef<HTMLDivElement>(null);
-  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("vectors");
+  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>(vectorOnly?"vectors":"geometry");
   const [dimension, setDimension] = useState<VectorDimension>(2);
   const [vectors, setVectors] = useState<VectorEntry[]>(initialVectors);
   const [operationId, setOperationId] = useState<OperationId>("magnitude");
@@ -184,6 +185,7 @@ export function VectorWorkbench({
   const result = useMemo<CalculationResult>(() => {
     const aLatex = latexVector(a, dimension);
     const bLatex = latexVector(b, dimension);
+    const componentSquares = (vector: WorkbenchVector) => vector.slice(0, dimension).map((value) => `(${formatNumber(value)})^2`).join("+");
     const vectorResult = (title: string, value: WorkbenchVector, formula: string, explanation: string): CalculationResult => ({
       title,
       value: formatWorkbenchVector(value, dimension),
@@ -198,7 +200,7 @@ export function VectorWorkbench({
         title: "Magnitude of A",
         value: formatNumber(vectorMagnitude(a, dimension)),
         exactLatex: exact,
-        formula: `\\[\\lVert\\vec A\\rVert=\\sqrt{${formatNumber(squaredMagnitude(a, dimension))}}=${exact}\\]`,
+        formula: `\\[\\lVert\\vec A\\rVert=\\sqrt{${componentSquares(a)}}=${exact}\\]`,
         explanation: "Square the components, add them, then take the square root. The radical is the exact value.",
       };
     }
@@ -226,7 +228,7 @@ export function VectorWorkbench({
         title: "Distance between endpoints",
         value: formatNumber(vectorMagnitude(difference, dimension)),
         exactLatex: exact,
-        formula: `\\[d=\\lVert\\vec A-\\vec B\\rVert=\\sqrt{${formatNumber(squaredMagnitude(difference, dimension))}}=${exact}\\]`,
+        formula: `\\[d=\\lVert\\vec A-\\vec B\\rVert=\\sqrt{${componentSquares(difference)}}=${exact}\\]`,
         explanation: "The displacement from B to A is A minus B. Its magnitude is the endpoint distance.",
       };
     }
@@ -356,7 +358,7 @@ export function VectorWorkbench({
 
       {!vectorOnly && workspaceMode === "geometry" ? (
         <div className="visualizer-control-scroll min-h-0 flex-1 overflow-y-auto p-3 sm:p-6">
-          <div className="mx-auto max-w-6xl"><VectorCalculator /></div>
+          <div className="mx-auto max-w-6xl"><VectorCalculator initialSection={initialSection} /></div>
         </div>
       ) : (
         <div className="grid min-h-0 flex-1 overflow-y-auto lg:grid-cols-[390px_minmax(0,1fr)] lg:overflow-hidden">
