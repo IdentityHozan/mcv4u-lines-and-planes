@@ -3,45 +3,77 @@
 import Link from "@/components/ui/SiteLink";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { finalExam, quizzes, tests, type Assessment } from "@/data/linesAndPlanesData";
-import { assessmentSignature, questionMarks, QuizEngine } from "./QuizEngine";
-
-import { courseUnits, sectionRange, homeworkHref, quizHref, testHref } from "@/data/courseUnits";
+import { courseUnits, quizHref, sectionRange, testHref } from "@/data/courseUnits";
+import { assessmentSignature, questionMarks, QuizEngine, readAssessmentAttempt } from "./QuizEngine";
+import { AssessmentSolutions } from "./AssessmentSolutions";
 
 const SCORE_KEY = "mcv4u-lines-and-planes-scores-v4";
+const allAssessments = [...quizzes, ...tests, finalExam];
+const quietLink = "inline-flex min-h-11 items-center text-sm font-semibold text-sky-200 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300";
 type SavedScore = { score: number; total: number; signature: string };
-type AssessmentHubProps = { variant: "quizzes" | "tests" | "exam"; initialUnit?: string };
+type AttemptStatus = "in progress" | "ready for review";
+type AssessmentHubProps = { variant: "quizzes" | "tests" | "exam"; initialUnit?: string; initialSolution?: string };
 
-export function AssessmentHub({ variant, initialUnit }: AssessmentHubProps) {
+function getAttemptStatuses() {
+  const statuses: Record<string, AttemptStatus> = {};
+  for (const assessment of allAssessments) {
+    const attempt = readAssessmentAttempt(assessment);
+    if (attempt?.submitted === true || (assessment.kind === "quiz" && Array.isArray(attempt?.revealed) && assessment.questions.every((question) =>
+      attempt.revealed?.includes(question.id) && (question.kind !== "written" || attempt.writtenMarks?.[question.id] !== undefined)))) {
+      statuses[assessment.id] = "ready for review";
+    } else if (assessment.questions.some((question) => {
+      const answer = attempt?.answers?.[question.id];
+      return question.kind === "written"
+        ? typeof answer === "string" && !!answer.trim()
+        : Number.isInteger(answer) && Number(answer) >= 0 && Number(answer) < question.options.length;
+    })) {
+      statuses[assessment.id] = "in progress";
+    }
+  }
+  return statuses;
+}
+
+export function AssessmentHub({ variant, initialUnit, initialSolution }: AssessmentHubProps) {
   const [selectedUnit, setSelectedUnit] = useState(() => courseUnits.some((unit) => unit.id === initialUnit) ? initialUnit! : "all");
   const [active, setActive] = useState<Assessment | null>(null);
   const [scores, setScores] = useState<Record<string, SavedScore>>({});
+  const [attempts, setAttempts] = useState<Record<string, AttemptStatus>>({});
   const workspaceRef = useRef<HTMLDivElement>(null);
   const assessments = variant === "quizzes" ? quizzes : variant === "tests" ? tests : [finalExam];
-
+  const solutionAssessment = assessments.find((assessment) => assessment.id === initialSolution);
+  const listPath = variant === "exam" ? "/exam" : variant === "tests" ? "/tests" : "/assessments";
+  const returnPath = variant === "exam" || selectedUnit === "all" ? listPath : `${listPath}?unit=${encodeURIComponent(selectedUnit)}`;
+  const noun = variant === "exam" ? "exam" : variant === "tests" ? "test" : "quiz";
+  const back = variant === "exam" ? "Back to exam" : `Back to ${variant}`;
   const visibleAssessments = variant === "exam" || selectedUnit === "all" ? assessments : assessments.filter((assessment) => assessment.number === selectedUnit);
 
   useEffect(() => {
+    const status = getAttemptStatuses();
+    queueMicrotask(() => setAttempts(status));
     try {
       const stored = window.localStorage.getItem(SCORE_KEY);
       if (!stored) return;
       const parsed: unknown = JSON.parse(stored);
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return;
       const safe: Record<string, SavedScore> = {};
-      [...quizzes, ...tests, finalExam].forEach((assessment) => {
+      allAssessments.forEach((assessment) => {
         const candidate = (parsed as Record<string, Partial<SavedScore>>)[assessment.id];
-        if (candidate && typeof candidate.score === "number" && typeof candidate.total === "number" && Number.isFinite(candidate.score) && candidate.score >= 0 && candidate.score <= candidate.total && candidate.signature === assessmentSignature(assessment)) {
+        const total = assessment.questions.reduce((sum, question) => sum + questionMarks(question), 0);
+        if (candidate && typeof candidate.score === "number" && candidate.total === total && Number.isInteger(candidate.score) && candidate.score >= 0 && candidate.score <= total && candidate.signature === assessmentSignature(assessment)) {
           safe[assessment.id] = { score: candidate.score, total: candidate.total, signature: candidate.signature };
         }
       });
       queueMicrotask(() => setScores(safe));
     } catch {
-      // An unavailable or malformed local score must not block the question bank.
+      // A malformed local score must not block the question bank.
     }
   }, []);
 
   useEffect(() => {
-    if (active) workspaceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (active) workspaceRef.current?.querySelector<HTMLHeadingElement>("h2")?.focus();
   }, [active]);
+
+  const scrollToWorkspace = () => workspaceRef.current?.scrollIntoView({ block: "start" });
 
   const saveScore = useCallback((assessment: Assessment, score: number, total: number) => {
     setScores((current) => {
@@ -52,50 +84,60 @@ export function AssessmentHub({ variant, initialUnit }: AssessmentHubProps) {
   }, []);
 
   return (
-    <div ref={workspaceRef} className="scroll-mt-28">
-
-      {active ? (
+    <div ref={workspaceRef} className="scroll-mt-24">
+      {solutionAssessment ? (
         <>
-          <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
-            <button type="button" onClick={() => { setActive(null); workspaceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }} className="min-h-12 border border-white/20 px-5 py-3 text-base font-semibold text-zinc-200 hover:border-sky-300/50 hover:text-sky-200">Back to {variant === "exam" ? "examination" : variant === "tests" ? "tests" : "quizzes"}</button>
-          </div>
+          <Link href={returnPath} className={quietLink}>← {back}</Link>
+          <AssessmentSolutions assessment={solutionAssessment} />
+        </>
+      ) : active ? (
+        <>
+          <button type="button" onClick={() => { setAttempts(getAttemptStatuses()); setActive(null); scrollToWorkspace(); }} className={`mb-3 ${quietLink}`}>← {back}</button>
           <QuizEngine key={active.id} assessment={active} onComplete={(score, total) => saveScore(active, score, total)} />
         </>
       ) : (
         <>
-          {variant !== "exam" && <div className="mb-7 flex flex-wrap items-end justify-between gap-5">
-            <label className="text-sm font-semibold text-zinc-200">Unit<select value={selectedUnit} onChange={(event) => { setSelectedUnit(event.target.value); window.history.replaceState(null, "", event.target.value === "all" ? (variant === "tests" ? "/tests" : "/assessments") : (variant === "tests" ? testHref(event.target.value) : quizHref(event.target.value))); }} className="mt-2 block max-w-full border border-white/20 bg-[#111] p-3 text-base text-zinc-100"><option value="all">All units</option>{courseUnits.map((unit) => <option key={unit.id} value={unit.id}>Unit {unit.id} Sections {sectionRange(unit.sections)}</option>)}</select></label>
+          {variant !== "exam" && <div className="mb-5">
+            <label className="inline-flex flex-wrap items-center gap-3 text-sm font-semibold text-zinc-200">
+              Unit
+              <select
+                value={selectedUnit}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setSelectedUnit(value);
+                  window.history.replaceState(null, "", value === "all" ? listPath : (variant === "tests" ? testHref(value) : quizHref(value)));
+                }}
+                className="min-h-11 max-w-full rounded-md border border-white/20 bg-[#111] px-3 py-2 text-base text-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
+              >
+                <option value="all">All units</option>
+                {courseUnits.map((unit) => <option key={unit.id} value={unit.id}>Unit {unit.id}</option>)}
+              </select>
+            </label>
           </div>}
-          <div className="space-y-5">
+          <div className="divide-y divide-white/15 border-y border-white/15">
             {visibleAssessments.map((assessment) => {
               const saved = scores[assessment.id];
+              const attempt = attempts[assessment.id];
               const unit = courseUnits.find((item) => item.id === assessment.number);
-              const writtenCount = assessment.questions.filter((question) => question.kind === "written").length;
+              const solutionHref = `${returnPath}${returnPath.includes("?") ? "&" : "?"}solution=${encodeURIComponent(assessment.id)}`;
               const totalMarks = assessment.questions.reduce((total, question) => total + questionMarks(question), 0);
-              const kind = variant === "exam" ? "Final examination" : `${variant === "tests" ? "Test" : "Quiz"} ${assessment.number}`;
+              const title = unit ? `${variant === "tests" ? "Test" : "Quiz"} ${unit.id}: ${assessment.title}` : assessment.title;
+              const action = attempt === "ready for review" ? "Review attempt" : attempt ? `Resume ${noun}` : `Start ${noun}`;
               return (
-                <article key={assessment.id} className="grid border border-white/15 bg-[#111] lg:grid-cols-[1fr_280px]">
-                  <div className="p-6 sm:p-8">
-                    <p className="text-sm font-semibold uppercase tracking-[0.1em] text-sky-200">{kind}</p>
-                    {unit && <p className="mt-2 text-sm text-zinc-400">Sections {sectionRange(unit.sections)}</p>}
-                    <h2 className="mt-3 text-2xl font-semibold leading-tight text-zinc-100 sm:text-3xl">{assessment.title}</h2>
-                    {unit && <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm font-semibold text-sky-200"><Link href={homeworkHref(unit.sections[0])}>Homework</Link><Link href={variant === "tests" ? quizHref(unit.id) : testHref(unit.id)}>{variant === "tests" ? `Quiz ${unit.id}` : `Test ${unit.id}`}</Link></div>}
+                <article key={assessment.id} className="flex flex-col gap-x-8 gap-y-3 py-5 sm:flex-row sm:items-center sm:justify-between sm:py-6">
+                  <div className="min-w-0">
+                    <h2 className="text-lg font-semibold leading-snug text-zinc-100 sm:text-xl">{title}</h2>
+                    {unit && <p className="mt-1 text-sm text-zinc-400">Sections {sectionRange(unit.sections)}</p>}
+                    <p className="mt-2 text-sm text-zinc-300">{assessment.questions.length} questions<span className="mx-2 text-zinc-500" aria-hidden="true">/</span><span className="sr-only">, </span>{totalMarks} marks{saved && <span className="ml-3 text-sky-200">Last score: {saved.score}/{saved.total}</span>}</p>
                   </div>
-                  <div className="border-t border-white/15 bg-black/15 p-6 sm:p-8 lg:border-l lg:border-t-0">
-                    <dl className="space-y-4 text-base">
-                      <div className="flex justify-between gap-3"><dt className="text-zinc-400">Questions</dt><dd className="font-semibold text-zinc-100">{assessment.questions.length}</dd></div>
-                      <div className="flex justify-between gap-3"><dt className="text-zinc-400">Marks</dt><dd className="font-semibold text-zinc-100">{totalMarks}</dd></div>
-                      <div className="flex justify-between gap-3"><dt className="text-zinc-400">Suggested time</dt><dd className="font-semibold text-zinc-100">{assessment.timeLimit}</dd></div>
-                    </dl>
-                    <p className="mt-5 border-t border-white/15 pt-4 text-sm leading-6 text-zinc-400">{assessment.questions.length - writtenCount} multiple choice<br />{writtenCount} written response</p>
-                    <button type="button" onClick={() => setActive(assessment)} className="mt-6 min-h-12 w-full bg-sky-200 px-5 py-3 text-base font-semibold text-slate-950 hover:bg-sky-100">Open {variant === "exam" ? "examination" : variant === "tests" ? "test" : "quiz"}</button>
-                    {saved && <div className="mt-5 border-t border-white/15 pt-4"><p className="text-sm text-zinc-400">Last result</p><p className="mt-2 text-2xl font-semibold text-sky-200">{saved.score} / {saved.total}</p><p className="mt-2 text-sm leading-6 text-zinc-400">Includes self-assessed written marks.</p></div>}
+                  <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2">
+                    <button type="button" onClick={() => { setActive(assessment); scrollToWorkspace(); }} className="primary-action rounded-md" aria-label={`${action}: ${title}`}>{action}</button>
+                    <Link href={solutionHref} className={quietLink} aria-label={`Answer key: ${title}`}>Answer key</Link>
                   </div>
                 </article>
               );
             })}
           </div>
-          <p className="mt-6 max-w-3xl text-sm leading-6 text-zinc-400">Multiple choice is marked automatically. Written responses are self-assessed. Results are practice estimates.</p>
         </>
       )}
     </div>

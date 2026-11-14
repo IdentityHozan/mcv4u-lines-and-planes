@@ -16,16 +16,18 @@ type MathJaxRendererProps = {
   math: string;
   className?: string;
   ariaLabel?: string;
+  children?: React.ReactNode;
 };
 
 export function MathJaxRenderer({
   math,
   className = "",
   ariaLabel,
+  children,
 }: MathJaxRendererProps) {
   const ref = useRef<HTMLDivElement>(null);
   const id = useId();
-  const hasMath = /\\[([]/.test(math);
+  const hasMath = !!children || /\\[([]/.test(math);
   const [ready, setReady] = useState(!hasMath);
 
   useEffect(() => {
@@ -77,9 +79,9 @@ export function MathJaxRenderer({
       id={`math-${id.replace(/:/g, "")}`}
       className={`math-content ${className}`}
       data-ready={!hasMath || ready}
-      aria-label={ariaLabel ?? math.replace(/[\\()[\]]/g, "")}
+      aria-label={ariaLabel ?? (children ? undefined : math.replace(/[\\()[\]]/g, ""))}
     >
-      {math}
+      {children ?? math}
     </div>
   );
 }

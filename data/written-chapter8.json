@@ -1,0 +1,200 @@
+[
+  {
+    "section": "8.1",
+    "title": "Vector and parametric equations of a line in two dimensions",
+    "intro": "A line is an infinite set of points. Once you know one point on it and the direction it follows, you can describe every other point by choosing how far to move along that direction.",
+    "objectives": [
+      "Build a vector equation from a point and a direction or from two distinct points.",
+      "Read parametric equations from vector form.",
+      "Test point membership, find intercepts, and distinguish parallel lines from coincident ones."
+    ],
+    "blocks": [
+      {
+        "title": "A starting point and a direction",
+        "body": "Let's say we know a point on a line, $A(1,4)$, and a direction the line follows, $\\vec m=[2,-3]$. What if we want to find another point?\n\n**Start at the known point.** If you take zero copies of $\\vec m$, you stay at $A(1,4)$. If you take one copy, move 2 units right and 3 units down to $B(3,1)$. Take another copy and you reach $(5,-2)$. Negative copies take you in the opposite direction.\n\n**Turn the movement into an equation.** Let $t$ be the number of copies of the direction vector, including fractions and negatives. Start from the origin $O$, go to a known point $P_0$, and then move by $t\\vec m$ to reach $P$:\n$$\n\\vec r=\\overrightarrow{OP}=\\overrightarrow{OP_0}+\\overrightarrow{P_0P}=\\vec r_0+t\\vec m,\\qquad t\\in\\mathbb R.\n$$\n\n**Read the coordinates.** If $P_0=(x_0,y_0)$ and $\\vec m=[m_1,m_2]\\ne\\vec 0$, the vector equation is $\\vec r=[x_0,y_0]+t[m_1,m_2]$. Its separate coordinate equations are the **parametric equations**:\n$$\nx=x_0+tm_1,\\qquad y=y_0+tm_2,\\qquad t\\in\\mathbb R.\n$$\n\nUse the **same** $t$ in both equations to get one point. It scales the direction vector, so $|t|$ only equals the distance from $P_0$ when that vector has length 1."
+      },
+      {
+        "title": "Worked example: a line through two points",
+        "body": "**Given:** Two points on the line, $A(1,4)$ and $B(3,1)$.\n\n**Find:** The vector and parametric equations. Then decide whether $P(5,-2)$ is on the line.\n\n**1. Find the direction.** The direction was supplied above. Here you get it from the two points: subtract the coordinates of $A$ from the coordinates of $B$.\n$$\n\\overrightarrow{AB}=[3-1,1-4]=[2,-3].\n$$\n\n**2. Use the starting point and direction.** Put the starting point and direction together. Then read one equation for each coordinate.\n$$\n\\begin{aligned}\n\\vec r&=[1,4]+t[2,-3],\\qquad t\\in\\mathbb R,\\\\\nx&=1+2t,\\qquad y=4-3t.\n\\end{aligned}\n$$\n\n**3. Check the point with one parameter.** Set $x=5$ to get $5=1+2t$, so $t=2$. In the $y$ equation the same $t$ gives $4-3(2)=-2$. Both coordinates match, so $P(5,-2)$ is on the line. The point $(5,-1)$ is off the line because its $y$ coordinate does not match.\n\n**Another correct equation.** Start at $B$ instead and go in direction $\\overrightarrow{BA}=[-2,3]$. This gives $\\vec r=[3,1]+u[-2,3]$. Both equations describe the same set of points. The first gives $B$ at $t=1$; the second gives $B$ at $u=0$."
+      },
+      {
+        "title": "Worked example: finding an intercept",
+        "body": "**Given:** The line through $E(-1,5)$ and $F(6,11)$.\n\n**Find:** The point where the line crosses the $x$-axis.\n\n**1. Write the parametric equations.** Use $E$ and the direction $\\overrightarrow{EF}=[7,6]$.\n$$\nx=-1+7t,\\qquad y=5+6t.\n$$\n\n**2. Find the parameter at the crossing.** Every point on the $x$-axis has $y=0$, so solve $5+6t=0$. This gives $t=-\\tfrac56$.\n\n**3. Find the missing coordinate.** Use that same $t$ in the $x$ equation.\n$$\nx=-1+7\\left(-\\frac56\\right)=-\\frac{41}{6}.\n$$\n\n**Answer:** The $x$-intercept is $\\left(-\\tfrac{41}{6},0\\right)$. The value $-\\tfrac56$ tells you which point to use; it is not a coordinate of the intercept."
+      },
+      {
+        "title": "Zero components and parallel directions",
+        "body": "A zero component in a direction vector means the corresponding coordinate stays fixed. For example, $\\vec r=[2,3]+t[0,-4]$ is the vertical line $x=2$. It crosses the $x$-axis at $(2,0)$ but has no $y$-intercept. The whole direction vector cannot be zero, or the equation would describe only one point.\n\nIf two lines have proportional nonzero directions, test a starting point from one line in the other. A shared point means the lines **coincide**; otherwise they are **distinct parallel lines**. For instance, $[3,1]+u[-2,3]$ coincides with the line through $A$ and $B$ above, whereas $[1,5]+u[-2,3]$ has the same direction but a starting point off that line."
+      }
+    ],
+    "summary": [
+      "A line needs one point and one nonzero direction.",
+      "Subtract the two given points to get a direction.",
+      "Use one parameter value for every coordinate in a membership or intercept check."
+    ]
+  },
+  {
+    "section": "8.2",
+    "title": "Cartesian equations of a line in two dimensions",
+    "intro": "Vector and parametric forms tell you how to move along a line. A Cartesian equation tests coordinates directly and shows a direction perpendicular to the line.",
+    "objectives": [
+      "Read a normal from a Cartesian equation.",
+      "Convert between Cartesian, vector, parametric and slope-intercept forms.",
+      "Use normals or directions to compare lines and find their smaller angle."
+    ],
+    "blocks": [
+      {
+        "title": "A normal vector and the Cartesian form",
+        "body": "A **normal vector** is perpendicular to the line. If $\\vec m=[a,b]$ is a nonzero direction, then $[b,-a]$ is a normal because $[a,b]\\cdot[b,-a]=ab-ab=0$. The opposite normal works as well.\n\nIf $P_0(x_0,y_0)$ lies on the line and $\\vec n=[A,B]$ is a nonzero normal, then every displacement $[x-x_0,y-y_0]$ along the line has dot product zero with $\\vec n$. This gives\n$$\nA(x-x_0)+B(y-y_0)=0\\quad\\Longleftrightarrow\\quad Ax+By+C=0,\\qquad C=-Ax_0-By_0.\n$$\nAt least one of $A,B$ must be nonzero. The coefficients $[A,B]$ form a normal, and $[B,-A]$ is one possible direction. Multiplying the entire equation by a nonzero constant does not change the line.\n\nWhen $B\\ne0$, isolate $y$ to get $y=-\\tfrac{A}{B}x-\\tfrac{C}{B}$. When $B=0$, the line is vertical and has no finite slope. When $A=0$, it is horizontal."
+      },
+      {
+        "title": "Worked example: Cartesian to vector and parametric forms",
+        "body": "**Given:** The Cartesian equation $2x-3y+6=0$.\n\n**Find:** A vector equation and its parametric equations.\n\n**1. Get a direction.** Read the normal $[2,-3]$ from the coefficients of $x$ and $y$. A direction along the line is $[3,2]$ because $[2,-3]\\cdot[3,2]=2(3)-3(2)=0$.\n\n**2. Get a point.** Set $x=0$. Then $-3y+6=0$, so $P_0(0,2)$ is on the line.\n\n**3. Write the equations.** Start at $P_0$ and use the direction you found.\n$$\n\\begin{aligned}\n\\vec r&=[0,2]+t[3,2],\\qquad t\\in\\mathbb R,\\\\\nx&=3t,\\qquad y=2+2t.\n\\end{aligned}\n$$\n\n**Check:** Substitute both coordinates into the original equation. For every $t$, $2(3t)-3(2+2t)+6=0$.\n\n**Reverse the conversion.** In the recording, the starting line is $\\vec r=[2,-1]+t[3,2]$. The component equations give $t=(x-2)/3$ and $t=(y+1)/2$. Since the two expressions represent the same number,\n$$\n2(x-2)=3(y+1)\\quad\\Longrightarrow\\quad 2x-3y-7=0.\n$$\nThis line has the same direction as the first example, but a different constant, so the two lines are distinct and parallel."
+      },
+      {
+        "title": "Worked example: a vertical line from a vector equation",
+        "body": "**Given:** $\\vec r=[-3,4]+t[0,5]$.\n\n**Find:** The Cartesian equation.\n\n**1. Read the fixed coordinate.** The first direction component is zero, so $x=-3$ for every value of $t$.\n\n**2. Write it in Cartesian form.** The equation is $x+3=0$. You can also use the horizontal normal $[1,0]$ with the point $(-3,4)$: $1(x+3)+0(y-4)=0$.\n\n**Check:** At $t=0$ the point is $(-3,4)$, and at $t=1$ it is $(-3,9)$. Both have $x=-3$. A vertical line has no finite slope, so the form $y=mx+b$ does not work here. When both direction components are nonzero, eliminating $t$ from the component equations is another route to Cartesian form."
+      },
+      {
+        "title": "Worked example: perpendicular lines and angle checks",
+        "body": "**Given:** The lines $kx+4y-4=0$ and $3x-2y-3=0$.\n\n**Find:** The value of $k$ that makes them perpendicular.\n\n**1. Read the normals.** The coefficients give $[k,4]$ and $[3,-2]$. Turning both line directions by a quarter turn gives their normals and preserves the angle, so the normals must be perpendicular too.\n\n**2. Set their dot product to zero.**\n$$\n[k,4]\\cdot[3,-2]=3k-8=0\\quad\\Longrightarrow\\quad k=\\frac83.\n$$\n\n**Check:** Substituting $k=\\tfrac83$ gives $3(\\tfrac83)-8=0$.\n\n**For the angle between two lines.** Use two directions or two normals in the smaller-angle formula:\n$$\n\\cos\\theta=\\frac{|\\vec m_1\\cdot\\vec m_2|}{\\|\\vec m_1\\|\\,\\|\\vec m_2\\|},\\qquad 0^\\circ\\le\\theta\\le90^\\circ.\n$$\nThe absolute value accounts for the fact that reversing either vector leaves its line unchanged. If the lines are parallel, scale the normal coefficients to match and compare the constants. Equal constants mean the same line."
+      }
+    ],
+    "summary": [
+      "The Cartesian coefficients are a normal, not a direction.",
+      "Keep the constant when deciding if two parallel lines coincide.",
+      "Use the point-normal form when slope is undefined."
+    ]
+  },
+  {
+    "section": "8.3",
+    "title": "Vector, parametric and symmetric equations of a line in space",
+    "intro": "A line in three dimensions still needs one point and one nonzero direction. The new coordinate gives another condition to check whenever you test whether a point is on the line.",
+    "objectives": [
+      "Write vector, parametric and symmetric equations in three dimensions.",
+      "Handle a zero direction component without dividing by zero.",
+      "Recognize that two independent Cartesian equations can describe a line in space."
+    ],
+    "blocks": [
+      {
+        "title": "Moving along a line in three dimensions",
+        "body": "From the point $P_0(x_0,y_0,z_0)$, move a signed multiple of the nonzero direction $[a,b,c]$:\n$$\n\\vec r=[x_0,y_0,z_0]+t[a,b,c],\\qquad t\\in\\mathbb R.\n$$\nThe parametric equations are $x=x_0+at$, $y=y_0+bt$, and $z=z_0+ct$. When $a,b,c$ are all nonzero, isolating $t$ in each equation gives the **symmetric form**\n$$\n\\frac{x-x_0}{a}=\\frac{y-y_0}{b}=\\frac{z-z_0}{c}.\n$$\nThe common value is $t$. If one component of the direction is zero, keep that coordinate fixed and equate the remaining ratios. If two components are zero, keep both corresponding coordinates fixed and let the remaining coordinate vary freely."
+      },
+      {
+        "title": "Worked example: convert and verify a point",
+        "body": "**Given:** The line through $A(1,3,6)$ with direction $[2,-5,4]$.\n\n**Find:** Its vector, parametric and symmetric equations. Decide whether $P(3,-2,10)$ lies on it.\n\n**1. Write vector form, then separate the coordinates.**\n$$\n\\begin{aligned}\n\\vec r&=[1,3,6]+t[2,-5,4],\\qquad t\\in\\mathbb R,\\\\\nx&=1+2t,\\qquad y=3-5t,\\qquad z=6+4t.\n\\end{aligned}\n$$\n\n**2. Isolate the parameter.** All three direction components are nonzero. Since all three expressions give the same $t$, set them equal.\n$$\n\\frac{x-1}{2}=\\frac{y-3}{-5}=\\frac{z-6}{4}.\n$$\n\n**3. Check the point in all three coordinates.** For $P(3,-2,10)$ all three fractions equal $1$, so $P$ is on the line. For $(3,-2,11)$ the third fraction is $\\tfrac54$ instead, so that point is off the line.\n\n**Another way to represent the line.** Equate the first ratio with the second, then the first with the third. Clearing the denominators gives\n$$\n\\begin{cases}\n5x+2y-11=0,\\\\\n2x-z+4=0.\n\\end{cases}\n$$\nEach equation describes a plane. A point on this line must satisfy both equations, so the line is where the planes intersect."
+      },
+      {
+        "title": "Worked example: a fixed coordinate",
+        "body": "**Given:** Points $A(-2,3,5)$ and $B(-2,4,-1)$.\n\n**Find:** The three forms of their line.\n\n**1. Subtract to get the direction.** The direction $B-A=[0,1,-6]$ leaves $x$ unchanged. Start at $A$ to write the vector and parametric forms.\n$$\n\\begin{aligned}\n\\vec r&=[-2,3,5]+t[0,1,-6],\\qquad t\\in\\mathbb R,\\\\\nx&=-2,\\qquad y=3+t,\\qquad z=5-6t.\n\\end{aligned}\n$$\n\n**2. Isolate the parameter where it appears.** Keep the fixed coordinate beside the equal ratios:\n$$\nx=-2,\\qquad \\frac{y-3}{1}=\\frac{z-5}{-6}.\n$$\n\n**Check:** At $B$, $x=-2$ and both ratios equal $1$. Never write $(x+2)/0$. To go back to vector form, call the common ratio $t$ and give the fixed coordinate a zero direction component."
+      },
+      {
+        "title": "Comparing directions and locating a line",
+        "body": "If two direction vectors are nonzero scalar multiples, the lines are parallel in direction. Test an anchor point to decide whether the lines coincide. If the directions are not proportional, do not assume the lines meet: in three dimensions nonparallel lines can be **skew**, with no point in common. You will classify these cases by solving the coordinate equations in Section 9.1."
+      }
+    ],
+    "summary": [
+      "The same parameter must satisfy all three coordinates.",
+      "Keep fixed coordinates as equations instead of dividing by zero.",
+      "In three dimensions, a single nondegenerate Cartesian linear equation describes a plane, not a line."
+    ]
+  },
+  {
+    "section": "8.4",
+    "title": "Vector and parametric equations of a plane",
+    "intro": "A point fixes the position of a plane. Two independent directions let you reach every point on it, much as one direction lets you travel along a line.",
+    "objectives": [
+      "Build a plane from a point and two independent directions.",
+      "Find a plane through three noncollinear points or through a line and an external point.",
+      "Use a single pair of parameters to verify point membership."
+    ],
+    "blocks": [
+      {
+        "title": "Why a plane needs two parameters",
+        "body": "Let $A$ be a known point on the plane, with position vector $\\vec r_0$. Choose two nonparallel nonzero vectors $\\vec u$ and $\\vec v$ in the plane. Every displacement from $A$ to another point in the plane is a linear combination $s\\vec u+t\\vec v$, where $s,t\\in\\mathbb R$ vary independently. Thus\n$$\n\\vec r=\\vec r_0+s\\vec u+t\\vec v,\\qquad s,t\\in\\mathbb R.\n$$\nEquating components gives the parametric form. If $\\vec u=[u_1,u_2,u_3]$, $\\vec v=[v_1,v_2,v_3]$, and $\\vec r_0=[x_0,y_0,z_0]$, then\n$$\nx=x_0+su_1+tv_1,\\quad y=y_0+su_2+tv_2,\\quad z=z_0+su_3+tv_3.\n$$\nIf the two directions are proportional, their combinations reach only a line. Check that $\\vec u\\times\\vec v\\ne\\vec 0$ to confirm they span a plane."
+      },
+      {
+        "title": "Worked example: three points and a membership test",
+        "body": "**Given:** Three points $A(1,0,2)$, $B(2,1,2)$ and $C(1,1,3)$.\n\n**Find:** Vector and parametric equations of the plane, then check whether $Q(3,1,1)$ lies on it.\n\n**1. Get two directions from the same point.** Use $A$ as the starting point and subtract it from $B$ and $C$. This gives $\\overrightarrow{AB}=[1,1,0]$ and $\\overrightarrow{AC}=[0,1,1]$. These are not proportional, so they spread out across a plane.\n\n**2. Give each direction its own parameter.**\n$$\n\\begin{aligned}\n\\vec r&=[1,0,2]+s[1,1,0]+t[0,1,1],\\qquad s,t\\in\\mathbb R,\\\\\nx&=1+s,\\qquad y=s+t,\\qquad z=2+t.\n\\end{aligned}\n$$\n\n**3. Check the coordinates with the same pair of parameters.** At $Q$, $x=3$ gives $s=2$. Then $y=1$ gives $t=-1$. These produce $z=2+(-1)=1$, so $Q$ lies on the plane. The point $(3,1,2)$ is off the plane: its first two coordinates force the same pair $(2,-1)$, which gives $z=1$."
+      },
+      {
+        "title": "Worked example: a line and an external point",
+        "body": "**Given:** The line $\\vec r=[1,2,0]+k[2,0,1]$ and a point $Q(0,3,2)$ outside it.\n\n**Find:** The plane containing the line and $Q$.\n\n**1. Borrow a point and a direction from the line.** Use $A(1,2,0)$ and $[2,0,1]$.\n\n**2. Find a second direction.** Move from $A$ to $Q$:\n$$\n\\overrightarrow{AQ}=[0-1,3-2,2-0]=[-1,1,2].\n$$\nThis direction has a nonzero second component, so it is not a multiple of $[2,0,1]$.\n\n**3. Use the two directions.**\n$$\n\\begin{aligned}\n\\vec r&=[1,2,0]+s[2,0,1]+t[-1,1,2],\\qquad s,t\\in\\mathbb R,\\\\\nx&=1+2s-t,\\qquad y=2+t,\\qquad z=s+2t.\n\\end{aligned}\n$$\n\n**Check:** Let $t=0$ and vary $s$ to get every point on the original line. Let $(s,t)=(0,1)$ to get $Q$."
+      },
+      {
+        "title": "Which information determines a plane?",
+        "body": "Three points determine a unique plane only when they are **not collinear**. A line and a point determine a unique plane only if the point is **not on the line**.\n\nFor two distinct intersecting lines, use their common point as the anchor and their two directions to span the plane. For two distinct parallel lines, use their common direction and a displacement between one point on each line. That displacement cannot be parallel to the line direction, because then the lines would coincide. Coincident lines lie in infinitely many planes, while skew lines cannot lie in the same plane."
+      }
+    ],
+    "summary": [
+      "The anchor fixes position; the two independent directions fix orientation.",
+      "For three points, form two displacements from the same anchor.",
+      "A membership test requires one parameter pair to satisfy all three coordinate equations."
+    ]
+  },
+  {
+    "section": "8.5",
+    "title": "Cartesian equations and geometric properties of planes",
+    "intro": "The vector form describes how to move within a plane. The Cartesian form uses a normal vector to test whether a point is in the plane and to compare the orientation of two planes.",
+    "objectives": [
+      "Derive point-normal and Cartesian equations of a plane.",
+      "Convert between Cartesian, vector and parametric forms.",
+      "Compare plane orientations and calculate the smaller angle between two planes."
+    ],
+    "blocks": [
+      {
+        "title": "From a normal and a point to the equation",
+        "body": "Let $\\vec n=[A,B,C]\\ne\\vec0$ be perpendicular to the plane through $P_0(x_0,y_0,z_0)$. A point $P(x,y,z)$ belongs to the plane exactly when its displacement from $P_0$ is perpendicular to $\\vec n$:\n$$\n\\vec n\\cdot[ x-x_0,y-y_0,z-z_0 ]=0.\n$$\nExpanding gives $Ax+By+Cz+D=0$, where $D=-Ax_0-By_0-Cz_0$. At least one of $A,B,C$ is nonzero. The first three coefficients determine a normal; the constant fixes the plane's location for those coefficients.\n\nIf you have two independent directions $\\vec u$ and $\\vec v$ instead, their cross product $\\vec u\\times\\vec v$ is a nonzero normal. Use that normal and the anchor to write the Cartesian equation. A different order of the cross product changes the sign of the entire equation without changing the plane."
+      },
+      {
+        "title": "Worked example: a point and a normal",
+        "body": "**Given:** A plane through $P_0(2,-1,3)$ with normal $[1,2,-1]$.\n\n**Find:** The Cartesian equation of the plane.\n\n**1. Build the displacement from the known point.** This is $[x-2,y+1,z-3]$. The second component is $y+1$ because the known $y$-coordinate is $-1$.\n\n**2. Set its dot product with the normal to zero.** The displacement lies in the plane, so it is perpendicular to the normal.\n$$\n(x-2)+2(y+1)-(z-3)=0.\n$$\n\n**3. Expand and check.** The minus sign before the last bracket gives $-z+3$, so the Cartesian equation is $x+2y-z+3=0$. At the starting point the left side is $2+2(-1)-3+3=0$."
+      },
+      {
+        "title": "Worked example: convert in both directions",
+        "body": "**Given:** The plane $\\vec r=[1,0,2]+s[1,1,0]+t[0,1,1]$.\n\n**Find:** A Cartesian equation, then convert it back to vector form.\n\n**1. Find a normal.** The cross product of the two directions is $[1,1,0]\\times[0,1,1]=[1,-1,1]$.\n\n**2. Use a point and that normal.** The starting point is $(1,0,2)$, so\n$$\n(x-1)-y+(z-2)=0\\quad\\Longrightarrow\\quad x-y+z=3.\n$$\n\n**Another route: eliminate the parameters.** From $x=1+s$ and $z=2+t$, get $s=x-1$ and $t=z-2$. Substitute both into $y=s+t$. This gives $y=(x-1)+(z-2)$, which rearranges to the same Cartesian equation.\n\n**3. Convert back by choosing two free coordinates.** Let $y=u$ and $z=v$. Then $x=3+u-v$, so another vector equation of the plane is\n$$\n\\vec r=[3,0,0]+u[1,1,0]+v[-1,0,1],\\qquad u,v\\in\\mathbb R.\n$$\n\n**Check:** Substituting these components into $x-y+z$ gives $3$ for every $u,v$. You can solve for any coordinate with a nonzero coefficient. In $x+y=2$, for example, solve for $x$ or $y$ and leave $z$ free."
+      },
+      {
+        "title": "Plane orientations and the smaller angle",
+        "body": "Parallel normals mean that the planes are parallel in orientation. After scaling one equation so the normal coefficients match, compare constants. For example, $x-y+z=3$ and $2x-2y+2z=6$ coincide, while $2x-2y+2z=8$ describes a distinct parallel plane. If the normals are not proportional, the planes meet in a line. If their dot product is zero, the planes meet at a right angle.\n\nFor $x-y+z=3$ and $z=0$, the normals are $[1,-1,1]$ and $[0,0,1]$. The smaller angle is found from\n$$\n\\cos\\theta=\\frac{|\\vec n_1\\cdot\\vec n_2|}{\\|\\vec n_1\\|\\,\\|\\vec n_2\\|}=\\frac{1}{\\sqrt3},\n\\qquad \\theta=\\cos^{-1}\\!\\left(\\frac{1}{\\sqrt3}\\right)\\approx54.7^\\circ.\n$$\nUse the absolute value because reversing a normal does not rotate the plane. Keep the exact cosine ratio until the final calculation."
+      }
+    ],
+    "summary": [
+      "A normal is perpendicular to every direction in the plane.",
+      "To convert to vector form, choose two free coordinates and solve for the third.",
+      "Compare constants only after matching the normal coefficients."
+    ]
+  },
+  {
+    "section": "8.6",
+    "title": "Plotting points and sketching planes in three dimensions",
+    "intro": "A good plane sketch makes it clear where the plane meets the coordinate axes and which way it extends. When an intercept is missing or several intercepts coincide, traces and extra points give a more useful picture.",
+    "objectives": [
+      "Plot a point and identify its projection onto a coordinate plane.",
+      "Use intercepts and traces to sketch a plane.",
+      "Handle planes that are parallel to an axis, contain an axis, or pass through the origin."
+    ],
+    "blocks": [
+      {
+        "title": "Points, projections, intercepts and traces",
+        "body": "Draw and label the three coordinate axes and the origin. To plot $R(-1,2,-2)$, travel one unit in the negative $x$ direction and two units parallel to the positive $y$ axis. This reaches $H(-1,2,0)$ in the $xy$-plane. Then move two units parallel to the negative $z$ axis. The point $H$ is the orthogonal projection of $R$ onto $z=0$; it keeps $x$ and $y$ and sets $z$ to zero.\n\nAn **axis intercept** is a point where a plane meets an axis. To find the $x$-intercept, set $y=z=0$; for the $y$-intercept set $x=z=0$; for the $z$-intercept set $x=y=0$. A **trace** is the intersection with a whole coordinate plane. For the $xy$-trace, set only $z=0$; the remaining linear equation describes the trace in that plane.\n\nFor $Ax+By+Cz=D$, the intercepts are $\\left(\\tfrac DA,0,0\\right)$, $\\left(0,\\tfrac DB,0\\right)$ and $\\left(0,0,\\tfrac DC\\right)$ when the corresponding coefficients are nonzero. When these three points are distinct and noncollinear, use them to outline a triangular patch. The plane continues beyond the triangle."
+      },
+      {
+        "title": "Worked example: sketch from a point and a normal",
+        "body": "**Given:** A plane through $A(2,0,0)$ with normal $[2,-1,1]$.\n\n**Find:** The intercepts and use them to sketch the plane.\n\n**1. Write the Cartesian equation.** The point-normal equation is $2(x-2)-y+z=0$. Simplifying gives $2x-y+z=4$.\n\n**2. Find one intercept at a time.** Keep the coordinate on that axis and set the other two equal to zero.\n\n- On the $x$-axis: $2x=4$, so $(2,0,0)$.\n- On the $y$-axis: $-y=4$, so $(0,-4,0)$.\n- On the $z$-axis: $z=4$, so $(0,0,4)$.\n\n**3. Plot the three points and connect them.** Put the second intercept on the negative $y$ side. The triangle shows part of the plane and its orientation. The plane extends past the triangle in every direction along its surface.\n\n**Check:** $Q(1,0,2)$ lies on the plane because $2(1)-0+2=4$.\n\n**The same method in the recording.** For $2x+3y+6z=6$, the three one-variable equations are $2x=6$, $3y=6$ and $6z=6$. Its intercepts are $(3,0,0)$, $(0,2,0)$ and $(0,0,1)$."
+      },
+      {
+        "title": "Worked example: a missing or contained axis",
+        "body": "**Given:** The plane $x+y=2$.\n\n**Find:** How to sketch it when the equation has no $z$ term.\n\n**1. Draw a trace.** In the $xy$-plane ($z=0$), draw the line through $(2,0,0)$ and $(0,2,0)$.\n\n**2. Use the free coordinate.** Since changing $z$ does not affect $x+y$, the point $(2,0,2)$ is also on the plane. Plot it above $(2,0,0)$ and use it to sketch a patch.\n\n**3. Check the missing axis.** Put $(0,0,z)$ into the equation. The result is $0=2$, so the plane never meets the axis.\n\n**Compare:** The plane $x+y=0$ contains the entire $z$-axis because the same substitution gives $0=0$ for every $z$. Show that plane using the axis and an extra point such as $(1,-1,0)$."
+      },
+      {
+        "title": "Worked example: a plane through the origin",
+        "body": "**Given:** The plane $x+y+z=0$.\n\n**Find:** Three points that show its orientation.\n\n**1. Try the intercepts.** All three axes meet this plane at the origin, so there is no intercept triangle.\n\n**2. Use traces to find two more points.** Set $z=0$ to get $x+y=0$ and choose $(1,-1,0)$. Set $y=0$ to get $x+z=0$ and choose $(1,0,-1)$.\n\n**3. Draw a patch through the three points.** The two new points and the origin are not collinear, so they determine a plane.\n\n**Another special case.** For $z=3$, both $x$ and $y$ can vary. Draw a patch parallel to the $xy$-plane at height 3. When a plane is itself a coordinate plane, its intersection with that coordinate plane is the entire plane."
+      }
+    ],
+    "summary": [
+      "Set two coordinates to zero for an axis intercept; set one to zero for a coordinate-plane trace.",
+      "Use three noncollinear points to outline a patch of the plane.",
+      "When intercepts are missing or coincide, use traces or extra points on the plane."
+    ]
+  }
+]

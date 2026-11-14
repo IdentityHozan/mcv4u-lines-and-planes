@@ -1,244 +1,243 @@
-type LessonDiagramProps = {
-  lessonId: string;
+import type { ComponentProps, ReactNode } from "react";
+import {
+  GraphFrame, GraphLabel, GraphPatch, GraphPoint, GraphSegment, CartesianGrid, SpaceAxes, RightAngle,
+  ink, add, subtract, along, patch, footOnPlane, axisSpecs, orthographic, cartesian, clippedLine,
+  type XYZ, type Label, type Project,
+} from "@/components/graphs/CourseGraph";
+
+type LessonDiagramProps = { lessonId: string; className?: string };
+
+type Segment = Omit<ComponentProps<typeof GraphSegment>, "to">;
+type Plane = Omit<ComponentProps<typeof GraphPatch>, "to">;
+type Corner = Omit<ComponentProps<typeof RightAngle>, "to">;
+type Scene = {
+  title: string;
+  caption: string;
+  segments: Segment[];
+  labels: Label[];
+  planes?: Plane[];
+  text?: Label[];
+  corner?: Corner;
 };
 
-const textStyle = { fontFamily: "var(--font-geist-mono), monospace", fontSize: 12 };
-
-function Frame({ title, children }: { title: string; children: React.ReactNode }) {
+function Plot({ scene, to, children, className }: { scene: Scene; to: Project; children?: ReactNode; className?: string }) {
   return (
-    <figure className="overflow-hidden border border-white/10 bg-[#0d0d0d]" aria-label={title}>
-      <svg viewBox="0 0 640 360" role="img" aria-labelledby={`diagram-${title.replaceAll(" ", "-")}`} className="block h-auto w-full">
-        <title id={`diagram-${title.replaceAll(" ", "-")}`}>{title}</title>
-        <defs>
-          <pattern id="lesson-grid" width="32" height="32" patternUnits="userSpaceOnUse">
-            <path d="M 32 0 L 0 0 0 32" fill="none" stroke="#232323" strokeWidth="1" />
-          </pattern>
-          <marker id="lesson-arrow-blue" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
-            <path d="M0,0 L9,4.5 L0,9 Z" fill="#38bdf8" />
-          </marker>
-          <marker id="lesson-arrow-white" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
-            <path d="M0,0 L9,4.5 L0,9 Z" fill="#f5f5f5" />
-          </marker>
-        </defs>
-        <rect width="640" height="360" fill="#0b0b0b" />
-        <rect width="640" height="360" fill="url(#lesson-grid)" />
-        {children}
-      </svg>
-      <figcaption className="border-t border-white/10 px-4 py-3 text-xs leading-5 text-zinc-400">{title}</figcaption>
-    </figure>
+    <GraphFrame title={scene.title} caption={scene.caption} className={className}>
+      {scene.planes?.map((plane,i) => <GraphPatch key={i} to={to} {...plane} />)}
+      {children}
+      {scene.segments.map((segment,i) => <GraphSegment key={i} to={to} {...segment} />)}
+      {scene.corner && <RightAngle to={to} {...scene.corner} />}
+      {scene.labels.map((label) => <GraphPoint key={label.text} to={to} label={label} />)}
+      {scene.text?.map((label) => <GraphLabel key={label.text} to={to} label={label} />)}
+    </GraphFrame>
   );
 }
 
-function Axes() {
-  return (
-    <g opacity="0.9">
-      <line x1="84" y1="292" x2="568" y2="292" stroke="#6b7280" strokeWidth="1.5" markerEnd="url(#lesson-arrow-white)" />
-      <line x1="116" y1="320" x2="116" y2="44" stroke="#38bdf8" strokeWidth="1.5" markerEnd="url(#lesson-arrow-blue)" />
-      <line x1="88" y1="316" x2="426" y2="76" stroke="#4b5563" strokeWidth="1.5" markerEnd="url(#lesson-arrow-white)" />
-      <text x="578" y="297" fill="#d4d4d8" style={textStyle}>x</text>
-      <text x="107" y="34" fill="#7dd3fc" style={textStyle}>y</text>
-      <text x="438" y="70" fill="#d4d4d8" style={textStyle}>z</text>
-    </g>
-  );
-}
+type PlanarScene = Scene & { bounds: Parameters<typeof cartesian>[0]; };
+type SpaceScene = Scene & {
+  extent?: [number,number] | false;
+  camera?: Parameters<typeof orthographic>[1];
+};
 
-function LineEquationDiagram() {
-  return (
-    <Frame title="A line starts at an anchor point and follows a direction vector">
-      <Axes />
-      <line x1="166" y1="264" x2="526" y2="96" stroke="#f5f5f5" strokeWidth="4" />
-      <circle cx="276" cy="213" r="8" fill="#f5f5f5" />
-      <line x1="276" y1="213" x2="401" y2="155" stroke="#38bdf8" strokeWidth="5" markerEnd="url(#lesson-arrow-blue)" />
-      <text x="244" y="238" fill="#f5f5f5" style={textStyle}>anchor r₀</text>
-      <text x="405" y="146" fill="#7dd3fc" style={textStyle}>direction d</text>
-      <text x="358" y="286" fill="#d4d4d8" style={textStyle}>r = r₀ + td</text>
-    </Frame>
-  );
-}
+const lineThrough = (point: XYZ, direction: XYZ, bounds: PlanarScene["bounds"]): Segment => {
+  const [a,b] = clippedLine(point,direction,bounds);
+  return {a,b,stroke:2.8};
+};
 
-function PlaneEquationDiagram() {
-  return (
-    <Frame title="Two in-plane directions span the plane and the normal points out of it">
-      <Axes />
-      <polygon points="142,250 380,102 558,178 314,326" fill="#38bdf8" fillOpacity="0.15" stroke="#38bdf8" strokeOpacity="0.72" strokeWidth="2" />
-      <circle cx="304" cy="220" r="7" fill="#f5f5f5" />
-      <line x1="304" y1="220" x2="440" y2="188" stroke="#f5f5f5" strokeWidth="4" markerEnd="url(#lesson-arrow-white)" />
-      <line x1="304" y1="220" x2="230" y2="280" stroke="#9ca3af" strokeWidth="4" markerEnd="url(#lesson-arrow-white)" />
-      <line x1="304" y1="220" x2="270" y2="72" stroke="#38bdf8" strokeWidth="5" markerEnd="url(#lesson-arrow-blue)" />
-      <text x="444" y="185" fill="#f5f5f5" style={textStyle}>a</text>
-      <text x="211" y="297" fill="#d4d4d8" style={textStyle}>b</text>
-      <text x="248" y="61" fill="#7dd3fc" style={textStyle}>normal n</text>
-    </Frame>
-  );
-}
+const planarScenes: Record<string, PlanarScene> = {
+  "line-equations": (() => {
+    const a: XYZ = [1,4,0], d: XYZ = [2,-3,0];
+    const b = along(a,d,1), p = along(a,d,2);
+    const bounds: PlanarScene["bounds"] = [-1,7,-4,6];
+    return {
+      title: "Follow the same direction along the line",
+      caption: "Start at A(1, 4). The arrow shows one copy of the direction [2, −3]: move 2 units right and 3 down to B(3, 1). A second copy reaches P(5, −2). Each grid square is one unit.",
+      bounds,
+      segments: [
+        lineThrough(a,d,bounds),
+        {a,b,color:ink.blue,stroke:4,arrow:true},
+        {a:b,b:p,color:ink.blue,stroke:3,dashed:true,arrow:true},
+      ],
+      labels: [
+        {text:"A (1, 4)",at:a,offset:[-12,-11],anchor:"end"},
+        {text:"B (3, 1)",at:b,offset:[13,0]},
+        {text:"P (5, −2)",at:p,offset:[13,0]},
+      ],
+      text: [{text:"[2, −3]",at:along(a,d,.47),color:ink.blue,offset:[12,-10]}],
+    };
+  })(),
+  "cartesian-lines-r2": (() => {
+    const a: XYZ = [0,2,0], d: XYZ = [3,2,0], n: XYZ = [2,-3,0];
+    const bounds: PlanarScene["bounds"] = [-4,6,-3,6];
+    return {
+      title: "The direction and normal form a right angle",
+      caption: "On 2x − 3y + 6 = 0, use A(0, 2) as the starting point. The direction [3, 2] stays on the line. The normal [2, −3] leaves it at 90°. The axes use the same scale.",
+      bounds,
+      segments: [lineThrough(a,d,bounds), {a,b:add(a,d),color:ink.blue,stroke:4,arrow:true},
+        {a,b:add(a,n),color:ink.amber,stroke:4,arrow:true}],
+      labels: [{text:"A (0, 2)",at:a,offset:[-13,-12],anchor:"end"}],
+      text: [
+        {text:"[3, 2]",at:add(a,d),offset:[10,-9],color:ink.blue},
+        {text:"[2, −3]",at:add(a,n),offset:[11,11],color:ink.amber},
+      ],
+      corner: {at:a,u:d,v:n,size:.58},
+    };
+  })(),
+  "point-line-distance": (() => {
+    const p: XYZ = [-6,4,0], n: XYZ = [5,-3,0], d: XYZ = [3,5,0];
+    const h = footOnPlane(p,n,15), bounds: PlanarScene["bounds"] = [-8,2,-6,6];
+    return {
+      title: "Measure the perpendicular segment, not a slanted one",
+      caption: "The amber segment from P(−6, 4) to H meets 5x − 3y + 15 = 0 at a right angle. H = (−69/34, 55/34) is the closest point. The length of PH is 27/√34 units.",
+      bounds,
+      segments: [lineThrough(h,d,bounds), {a:p,b:h,color:ink.amber,stroke:4,dashed:true}],
+      labels: [{text:"P (−6, 4)",at:p,offset:[-9,-11],anchor:"end"}, {text:"H",at:h,offset:[12,1],color:ink.amber}],
+      text: [{text:"L",at:along(h,d,.72),offset:[11,-6]}],
+      corner: {at:h,u:d,v:subtract(p,h),size:.68},
+    };
+  })(),
+};
 
-function InterceptsDiagram() {
-  return (
-    <Frame title="Three axis intercepts establish the orientation of a plane">
-      <Axes />
-      <polygon points="208,292 116,126 414,80" fill="#38bdf8" fillOpacity="0.17" stroke="#38bdf8" strokeWidth="2" />
-      {[[208, 292, "(a,0,0)"], [116, 126, "(0,b,0)"], [414, 80, "(0,0,c)"]].map(([x, y, label]) => (
-        <g key={String(label)}><circle cx={Number(x)} cy={Number(y)} r="7" fill="#f5f5f5" /><text x={Number(x) + 10} y={Number(y) - 8} fill="#d4d4d8" style={textStyle}>{label}</text></g>
-      ))}
-    </Frame>
-  );
-}
+const spaceScenes: Record<string, SpaceScene> = {
+  "lines-r3": (() => {
+    const a: XYZ = [1,3,6], d: XYZ = [2,-5,4], b = add(a,d);
+    return {
+      title: "One parameter moves all three coordinates",
+      caption: "The line starts at A(1, 3, 6) when t = 0. At t = 1, adding [2, −5, 4] lands at P(3, −2, 10). This is an orthographic view of the exact 3D coordinates.",
+      extent: [-4,5], camera: {yaw:1,pitch:.62},
+      segments: [{a:along(a,d,-.88),b:along(a,d,1.57)}, {a,b,color:ink.blue,stroke:4,arrow:true}],
+      labels: [{text:"A (1, 3, 6)",at:a,anchor:"end",offset:[-10,-13]}, {text:"P (3, −2, 10)",at:b,offset:[12,-8]}],
+    };
+  })(),
+  "defining-a-plane": (() => {
+    const a: XYZ = [1,0,2], u: XYZ = [1,1,0], v: XYZ = [0,1,1], b = add(a,u), c = add(a,v);
+    const q = along(along(a,u,2),v,-1);
+    const span = (s: number,t: number) => along(along(a,u,s),v,t);
+    return {
+      title: "Two directions give two independent moves",
+      caption: "A is the starting point. The blue arrow takes you to B when s = 1, t = 0. The violet arrow takes you to C when s = 0, t = 1. The tinted patch is part of the same plane, which continues beyond its edges.",
+      extent: false, camera: {yaw:2.38,pitch:.56,padX:75,padY:49},
+      planes: [{vertices:[span(-.76,-1.4),span(2.35,-1.4),span(2.35,2.1),span(-.76,2.1)]}],
+      segments: [{a,b,color:ink.blue,stroke:4,arrow:true}, {a,b:c,color:ink.violet,stroke:4,arrow:true}],
+      labels: [
+        {text:"A (1, 0, 2)",at:a,offset:[13,18]}, {text:"B (2, 1, 2)",at:b,offset:[-9,28],anchor:"end"},
+        {text:"C (1, 1, 3)",at:c,offset:[-10,-9],anchor:"end"}, {text:"Q (3, 1, 1)",at:q,offset:[9,22]},
+      ],
+    };
+  })(),
+  "plane-equations": (() => {
+    const a: XYZ = [2,-1,3], n: XYZ = [1,2,-1], u: XYZ = [1,0,1], v: XYZ = [-1,1,1];
+    const end = add(a,n);
+    return {
+      title: "A normal fixes the plane’s orientation",
+      caption: "The shaded patch belongs to x + 2y − z + 3 = 0. The amber arrow starts at P₀(2, −1, 3) and points along [1, 2, −1]. Its perpendicularity is in three dimensions; the projected angle can look different.",
+      extent: [-2,3.3], camera: {yaw:.87,pitch:.53},
+      planes: [{vertices:patch(a,u,v,-1.05,1.05)}],
+      segments: [{a,b:end,color:ink.amber,stroke:4,arrow:true}],
+      labels: [{text:"P₀ (2, −1, 3)",at:a,offset:[-10,-12],anchor:"end"}],
+      text: [{text:"n = [1, 2, −1]",at:end,offset:[12,10],color:ink.amber}],
+      corner: {at:a,u,v:n,size:.47},
+    };
+  })(),
+  "sketching-r3": {
+    title: "Read the intercepts on the three axes",
+    caption: "For 2x − y + z = 4, the intercepts are A(2, 0, 0), B(0, −4, 0), and C(0, 0, 4). B is on the dashed, negative side of the y-axis. The triangle shows the plane’s orientation; the plane extends beyond it.",
+    extent: [-5.2,5.2], camera: {yaw:.87,pitch:.51,padX:94},
+    planes: [{vertices:[[2,0,0],[0,-4,0],[0,0,4]]}],
+    segments: [],
+    labels: [
+      {text:"A (2, 0, 0)",at:[2,0,0],offset:[10,24]},
+      {text:"B (0, −4, 0)",at:[0,-4,0],offset:[6,-9],color:ink.amber},
+      {text:"C (0, 0, 4)",at:[0,0,4],offset:[-12,-7],anchor:"end"},
+    ],
+  },
+  "line-plane-intersections": (() => {
+    const a: XYZ = [1,0,2], d: XYZ = [1,2,-1], p = add(a,d);
+    return {
+      title: "The line crosses the plane at one point",
+      caption: "At t = 1, the line reaches P(2, 2, 1), where the three coordinates add to 5. The solid and dashed parts show the same line on opposite sides of the plane.",
+      extent: [-1.5,4.5], camera: {yaw:.87,pitch:.6},
+      planes: [{vertices:patch(p,[1,-1,0],[1,1,-2],-1.23,1.23)}],
+      segments: [
+        {a:along(p,d,1.28),b:p,dashed:true,color:ink.paper,opacity:.75},
+        {a:p,b:along(p,d,-1.64),color:ink.paper},
+      ],
+      labels: [{text:"P (2, 2, 1)",at:p,offset:[-13,21],anchor:"end",color:ink.amber}],
+      text: [{text:"x + y + z = 5",at:[3.8,1.65,-.45],offset:[8,9],color:ink.blue}],
+    };
+  })(),
+  "two-plane-intersections": (() => {
+    const a: XYZ = [2,1,0], d: XYZ = [-1,0,1], u: XYZ = [0,1,-1], v: XYZ = [0,1,1];
+    const onPlane = (s: number,t: number,basis: XYZ) => along(along(a,d,s),basis,t);
+    const plane = (basis: XYZ) => [[-1,-1.3],[2.3,-1.3],[2.3,1.3],[-1,1.3]].map(([s,t]) => onPlane(s,t,basis));
+    return {
+      title: "Both planes contain the highlighted line",
+      caption: "The blue plane is x + y + z = 3 and the violet plane is x − y + z = 1. Their common line passes through A(2, 1, 0) in direction [−1, 0, 1]. Every point on it has y = 1.",
+      extent: [-1.6,3.5], camera: {yaw:.86,pitch:.46,padX:78},
+      planes: [{vertices:plane(u)},{vertices:plane(v),color:ink.violet,opacity:.14}],
+      segments: [{a:along(a,d,-1),b:along(a,d,2.3),color:ink.amber,stroke:4}],
+      labels: [{text:"A (2, 1, 0)",at:a,offset:[-15,20],anchor:"end",color:ink.amber}],
+      text: [
+        {text:"Π₁",at:onPlane(-.8,-1.3,u),offset:[8,-2],color:ink.blue},
+        {text:"Π₂",at:onPlane(-.8,1.3,v),offset:[7,17],color:ink.violet},
+      ],
+    };
+  })(),
+  "consistent-systems": {
+    title: "One point satisfies all three equations",
+    caption: "The patches represent x + y + z = 6, 2x − y + z = 3, and x + 2y − z = 2. Their common point is (1, 2, 3). Each plane alone has infinitely many points.",
+    extent: [-1,4], camera: {yaw:.73,pitch:.56},
+    planes: [
+      {vertices:patch([1,2,3],[1,-1,0],[0,1,-1],-1.2,1.2)},
+      {vertices:patch([1,2,3],[1,2,0],[0,1,1],-.82,.82),color:ink.violet,opacity:.14},
+      {vertices:patch([1,2,3],[1,0,1],[0,1,2],-1,1),color:ink.green,opacity:.12},
+    ],
+    segments: [],
+    labels: [{text:"(1, 2, 3)",at:[1,2,3],offset:[12,-12],color:ink.amber}],
+  },
+  "three-plane-intersections": {
+    title: "Three plane equations can pin down one point",
+    caption: "In the worked example the three planes meet at (1, 2, 3). The pairwise intersection lines all pass through this point, but no full line lies in all three planes.",
+    extent: [-1.4,4.1], camera: {yaw:.73,pitch:.57},
+    planes: [
+      {vertices:patch([1,2,3],[1,-1,0],[0,1,-1],-1.4,1.4)},
+      {vertices:patch([1,2,3],[1,1,0],[0,1,1],-1.35,1.35),color:ink.violet,opacity:.14},
+      {vertices:patch([1,2,3],[1,0,1],[0,1,1],-1.22,1.22),color:ink.green,opacity:.12},
+    ],
+    segments: ([[1,0,-1],[1,-1,0],[0,1,1]] as XYZ[]).map((d) => ({
+      a:along([1,2,3],d,-1.04), b:along([1,2,3],d,1.04), color:ink.paper, stroke:2.1, opacity:.85,
+    })),
+    labels: [{text:"(1, 2, 3)",at:[1,2,3],offset:[12,-11],color:ink.amber}],
+  },
+  "point-plane-distance": (() => {
+    const p: XYZ = [-1,2,-4], n: XYZ = [8,-4,8], d = 3, h = footOnPlane(p,n,d);
+    return {
+      title: "The shortest path follows the plane normal",
+      caption: "The segment from P(−1, 2, −4) to H(3/2, 3/4, −3/2) follows the normal of 8x − 4y + 8z + 3 = 0. Its length is 15/4 units. The square marks a right angle in space.",
+      extent: [-3.5,3], camera: {yaw:.73,pitch:.31,padX:92},
+      planes: [{vertices:patch(h,[1,0,-1],[0,2,1],-1.15,1.15)}],
+      segments: [{a:p,b:h,color:ink.amber,stroke:3.7,dashed:true}],
+      labels: [{text:"P (−1, 2, −4)",at:p,offset:[-13,5],anchor:"end"}, {text:"H",at:h,offset:[12,0],color:ink.amber}],
+      corner: {at:h,u:[1,0,-1],v:subtract(p,h),size:.62},
+    };
+  })(),
+};
 
-function DefinePlaneDiagram() {
-  return (
-    <Frame title="A unique plane needs two independent directions">
-      <polygon points="112,274 342,100 552,174 316,324" fill="#38bdf8" fillOpacity="0.13" stroke="#38bdf8" strokeOpacity="0.6" strokeWidth="2" />
-      <circle cx="246" cy="222" r="8" fill="#f5f5f5" /><circle cx="422" cy="183" r="8" fill="#7dd3fc" /><circle cx="274" cy="285" r="8" fill="#38bdf8" />
-      <line x1="246" y1="222" x2="412" y2="185" stroke="#f5f5f5" strokeWidth="3" markerEnd="url(#lesson-arrow-white)" />
-      <line x1="246" y1="222" x2="271" y2="278" stroke="#38bdf8" strokeWidth="3" markerEnd="url(#lesson-arrow-blue)" />
-      <text x="228" y="208" fill="#f5f5f5" style={textStyle}>A</text><text x="432" y="178" fill="#d4d4d8" style={textStyle}>B</text><text x="282" y="304" fill="#7dd3fc" style={textStyle}>C</text>
-      <text x="348" y="220" fill="#d4d4d8" style={textStyle}>AB</text><text x="205" y="278" fill="#7dd3fc" style={textStyle}>AC</text>
-    </Frame>
-  );
-}
-
-function LinePlaneDiagram() {
-  return (
-    <Frame title="The shared point is found by substituting the line into the plane">
-      <polygon points="96,246 346,100 566,190 318,334" fill="#38bdf8" fillOpacity="0.14" stroke="#38bdf8" strokeWidth="2" />
-      <line x1="142" y1="318" x2="484" y2="58" stroke="#f5f5f5" strokeWidth="4" />
-      <circle cx="326" cy="178" r="10" fill="#38bdf8" stroke="#f5f5f5" strokeWidth="3" />
-      <text x="341" y="170" fill="#f5f5f5" style={textStyle}>intersection P</text>
-      <text x="136" y="338" fill="#d4d4d8" style={textStyle}>r(t)</text>
-      <text x="468" y="219" fill="#7dd3fc" style={textStyle}>plane Π</text>
-    </Frame>
-  );
-}
-
-function TwoPlanesDiagram() {
-  return (
-    <Frame title="Non-parallel planes meet along a line">
-      <polygon points="66,224 342,72 560,146 286,304" fill="#38bdf8" fillOpacity="0.14" stroke="#38bdf8" strokeWidth="2" />
-      <polygon points="146,70 384,126 492,326 252,270" fill="#f5f5f5" fillOpacity="0.08" stroke="#d4d4d8" strokeWidth="2" />
-      <line x1="220" y1="135" x2="410" y2="279" stroke="#f5f5f5" strokeWidth="5" />
-      <text x="90" y="244" fill="#7dd3fc" style={textStyle}>Π₁</text><text x="458" y="304" fill="#d4d4d8" style={textStyle}>Π₂</text>
-      <text x="382" y="250" fill="#f5f5f5" style={textStyle}>intersection line</text>
-    </Frame>
-  );
-}
-
-function SystemsDiagram() {
-  return (
-    <Frame title="Algebraic outcomes match geometric relationships">
-      <g transform="translate(24,40)">
-        <polygon points="18,116 152,44 214,78 80,150" fill="#38bdf8" fillOpacity="0.14" stroke="#38bdf8" />
-        <polygon points="60,38 176,70 202,164 86,132" fill="#f5f5f5" fillOpacity="0.06" stroke="#d4d4d8" />
-        <text x="52" y="205" fill="#f5f5f5" style={textStyle}>one intersection set</text>
-      </g>
-      <g transform="translate(222,40)">
-        <polygon points="18,98 156,26 216,60 78,132" fill="#38bdf8" fillOpacity="0.14" stroke="#38bdf8" />
-        <polygon points="18,134 156,62 216,96 78,168" fill="#f5f5f5" fillOpacity="0.05" stroke="#d4d4d8" />
-        <text x="52" y="205" fill="#f5f5f5" style={textStyle}>no intersection</text>
-      </g>
-      <g transform="translate(426,40)">
-        <polygon points="18,116 156,44 216,78 78,150" fill="#38bdf8" fillOpacity="0.18" stroke="#38bdf8" />
-        <polygon points="18,116 156,44 216,78 78,150" fill="#f5f5f5" fillOpacity="0.04" stroke="#f5f5f5" strokeDasharray="5 5" />
-        <text x="43" y="205" fill="#f5f5f5" style={textStyle}>infinitely many</text>
-      </g>
-    </Frame>
-  );
-}
-
-function DistanceDiagram() {
-  return (
-    <Frame title="Distance is measured along the shortest perpendicular segment">
-      <line x1="108" y1="284" x2="540" y2="112" stroke="#f5f5f5" strokeWidth="4" />
-      <circle cx="270" cy="92" r="9" fill="#38bdf8" />
-      <circle cx="338" cy="192" r="8" fill="#f5f5f5" />
-      <line x1="270" y1="92" x2="338" y2="192" stroke="#38bdf8" strokeWidth="4" strokeDasharray="8 6" />
-      <path d="M326 175 L310 186 L321 202" fill="none" stroke="#7dd3fc" strokeWidth="2" />
-      <text x="248" y="74" fill="#7dd3fc" style={textStyle}>point P</text>
-      <text x="280" y="146" fill="#7dd3fc" style={textStyle}>shortest distance</text>
-      <text x="495" y="104" fill="#d4d4d8" style={textStyle}>line L</text>
-    </Frame>
-  );
-}
-
-function LineTwoDimensionsDiagram() {
-  return (
-    <Frame title="A line in two dimensions uses one anchor and one direction">
-      <line x1="75" y1="230" x2="585" y2="230" stroke="#71717a" strokeWidth="2" />
-      <line x1="180" y1="325" x2="180" y2="30" stroke="#71717a" strokeWidth="2" />
-      <text x="593" y="236" fill="#d4d4d8" style={textStyle}>x</text><text x="163" y="27" fill="#d4d4d8" style={textStyle}>y</text>
-      <line x1="120" y1="340" x2="495" y2="90" stroke="#f5f5f5" strokeWidth="4" />
-      <circle cx="240" cy="260" r="7" fill="#f5f5f5" />
-      <circle cx="330" cy="200" r="6" fill="#38bdf8" />
-      <line x1="240" y1="260" x2="330" y2="200" stroke="#38bdf8" strokeWidth="5" markerEnd="url(#lesson-arrow-blue)" />
-      <text x="218" y="291" fill="#f5f5f5" style={textStyle}>P(2, −1)</text>
-      <text x="338" y="180" fill="#7dd3fc" style={textStyle}>S(5, 1)</text>
-      <text x="356" y="220" fill="#7dd3fc" style={textStyle}>d = (3, 2)</text>
-      <text x="370" y="310" fill="#d4d4d8" style={textStyle}>r = P + td</text>
-    </Frame>
-  );
-}
-
-function CartesianLineDiagram() {
-  return (
-    <Frame title="A Cartesian line has perpendicular direction and normal vectors">
-      <line x1="85" y1="240" x2="590" y2="240" stroke="#71717a" strokeWidth="2" />
-      <line x1="240" y1="325" x2="240" y2="25" stroke="#71717a" strokeWidth="2" />
-      <text x="596" y="246" fill="#d4d4d8" style={textStyle}>x</text><text x="222" y="25" fill="#d4d4d8" style={textStyle}>y</text>
-      <line x1="195" y1="300" x2="315" y2="60" stroke="#f5f5f5" strokeWidth="4" />
-      <circle cx="240" cy="210" r="7" fill="#f5f5f5" />
-      <line x1="240" y1="210" x2="285" y2="120" stroke="#38bdf8" strokeWidth="4" markerEnd="url(#lesson-arrow-blue)" />
-      <line x1="240" y1="210" x2="330" y2="255" stroke="#38bdf8" strokeWidth="4" markerEnd="url(#lesson-arrow-blue)" />
-      <path d="M247 196 L261 203 L254 217" fill="none" stroke="#7dd3fc" strokeWidth="2" />
-      <text x="300" y="114" fill="#7dd3fc" style={textStyle}>d = (1, 2)</text>
-      <text x="340" y="263" fill="#7dd3fc" style={textStyle}>n = (2, −1)</text>
-      <text x="110" y="202" fill="#f5f5f5" style={textStyle}>P(0, 1)</text>
-      <text x="380" y="170" fill="#f5f5f5" style={textStyle}>2x − y + 1 = 0</text>
-    </Frame>
-  );
-}
-
-function ThreePlanesDiagram() {
-  return (
-    <Frame title="Three independent plane constraints can determine one common point">
-      <polygon points="320,230 545,300 320,345 95,275" fill="#38bdf8" fillOpacity="0.15" stroke="#38bdf8" strokeWidth="2" />
-      <polygon points="320,230 545,300 545,105 320,35" fill="#f5f5f5" fillOpacity="0.07" stroke="#d4d4d8" strokeWidth="2" />
-      <polygon points="320,230 95,275 95,80 320,35" fill="#7dd3fc" fillOpacity="0.10" stroke="#7dd3fc" strokeWidth="2" />
-      <circle cx="320" cy="230" r="8" fill="#f5f5f5" />
-      <line x1="320" y1="230" x2="425" y2="198" stroke="#f5f5f5" strokeWidth="1.5" />
-      <text x="430" y="195" fill="#f5f5f5" style={textStyle}>common point</text>
-      <text x="520" y="329" fill="#7dd3fc" style={textStyle}>z = 0</text>
-      <text x="516" y="85" fill="#d4d4d8" style={textStyle}>y = 0</text>
-      <text x="90" y="61" fill="#7dd3fc" style={textStyle}>x = 0</text>
-      <text x="390" y="32" fill="#d4d4d8" style={textStyle}>independent normals</text>
-    </Frame>
-  );
-}
-
-function PointPlaneDiagram() {
-  return (
-    <Frame title="The shortest path from a point to a plane follows its normal">
-      <polygon points="100,260 350,155 575,235 320,335" fill="#38bdf8" fillOpacity="0.15" stroke="#38bdf8" strokeWidth="2" />
-      <line x1="330" y1="240" x2="330" y2="64" stroke="#38bdf8" strokeWidth="4" strokeDasharray="7 6" />
-      <circle cx="330" cy="70" r="8" fill="#38bdf8" /><circle cx="330" cy="240" r="7" fill="#f5f5f5" />
-      <path d="M330 222 L349 229 L349 247" fill="none" stroke="#f5f5f5" strokeWidth="2" />
-      <text x="350" y="72" fill="#7dd3fc" style={textStyle}>point P</text>
-      <text x="350" y="160" fill="#7dd3fc" style={textStyle}>normal direction n</text>
-      <text x="352" y="263" fill="#f5f5f5" style={textStyle}>perpendicular foot H</text>
-      <text x="138" y="273" fill="#7dd3fc" style={textStyle}>plane Π</text>
-    </Frame>
-  );
-}
-
-export function LessonDiagram({ lessonId }: LessonDiagramProps) {
-  if (lessonId === "line-equations") return <LineTwoDimensionsDiagram />;
-  if (lessonId === "lines-r3") return <LineEquationDiagram />;
-  if (lessonId === "cartesian-lines-r2") return <CartesianLineDiagram />;
-  if (lessonId === "plane-equations") return <PlaneEquationDiagram />;
-  if (lessonId === "sketching-r3") return <InterceptsDiagram />;
-  if (lessonId === "defining-a-plane") return <DefinePlaneDiagram />;
-  if (lessonId === "line-plane-intersections") return <LinePlaneDiagram />;
-  if (lessonId === "two-plane-intersections") return <TwoPlanesDiagram />;
-  if (lessonId === "consistent-systems") return <SystemsDiagram />;
-  if (lessonId === "three-plane-intersections") return <ThreePlanesDiagram />;
-  if (lessonId === "point-plane-distance") return <PointPlaneDiagram />;
-  return <DistanceDiagram />;
+export function LessonDiagram({ lessonId, className }: LessonDiagramProps) {
+  const plane = planarScenes[lessonId];
+  if (plane) {
+    const to = cartesian(plane.bounds);
+    return <Plot scene={plane} to={to} className={className}><CartesianGrid to={to} bounds={plane.bounds} /></Plot>;
+  }
+  const space = spaceScenes[lessonId];
+  if (!space) return null;
+  const axes = space.extent === false ? [] : axisSpecs(...(space.extent ?? [-3,4]));
+  const to = orthographic([
+    ...axes.flatMap(([,a,b]) => [a,b]),
+    ...(space.planes?.flatMap((plane) => plane.vertices) ?? []),
+    ...space.segments.flatMap(({a,b}) => [a,b]),
+    ...space.labels.map(({at}) => at),
+    ...(space.text?.map(({at}) => at) ?? []),
+  ],space.camera);
+  return <Plot scene={space} to={to} className={className}>{axes.length > 0 && <SpaceAxes to={to} axes={axes} />}</Plot>;
 }

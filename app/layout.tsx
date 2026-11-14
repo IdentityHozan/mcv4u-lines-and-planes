@@ -45,7 +45,7 @@ export default function RootLayout({
         <script
           id="mathjax-script"
           defer
-          src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"
+          src="/vendor/mathjax/tex-svg.js"
         />
       </head>
       <body>

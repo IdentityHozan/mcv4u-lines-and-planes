@@ -5,10 +5,8 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 const navigation = [
-  { href: "/", label: "Home" },
   { href: "/lessons", label: "Lessons" },
-  { href: "/visualizer", label: "Visualizer" },
-  { href: "/calculator", label: "Calculator" },
+  { href: "/videos", label: "Videos" },
   { href: "/practice", label: "Homework" },
   { href: "/assessments", label: "Quizzes" },
   { href: "/tests", label: "Tests" },
@@ -17,7 +15,6 @@ const navigation = [
 ];
 
 function isCurrent(pathname: string, href: string) {
-  if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -35,7 +32,7 @@ export function SiteHeader() {
           <span className="block text-[9px] font-bold uppercase tracking-[0.12em] text-sky-300">Lines and Planes</span>
         </Link>
 
-        <nav className="hidden items-center gap-1 xl:flex" aria-label="Primary navigation">
+        <nav className="hidden items-center gap-1 md:flex" aria-label="Primary navigation">
           {navigation.map((item) => {
             const active = isCurrent(pathname, item.href);
             return (
@@ -43,8 +40,8 @@ export function SiteHeader() {
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`px-3 py-2 text-xs font-semibold transition ${
-                  active ? "bg-sky-400/10 text-sky-300" : "text-zinc-400 hover:bg-white/[0.035] hover:text-zinc-100"
+                className={`rounded-sm px-3 py-2 text-sm font-medium transition ${
+                  active ? "bg-white/[0.07] text-zinc-100" : "text-zinc-400 hover:text-zinc-100"
                 }`}
               >
                 {item.label}
@@ -56,7 +53,7 @@ export function SiteHeader() {
         <button
           type="button"
           onClick={() => setMenuOpen((open) => !open)}
-          className="min-h-10 border border-white/15 px-4 text-sm font-semibold text-zinc-200 xl:hidden"
+          className="min-h-10 border border-white/15 px-4 text-sm font-semibold text-zinc-200 md:hidden"
           aria-expanded={menuOpen}
           aria-controls="mobile-navigation"
         >
@@ -65,7 +62,7 @@ export function SiteHeader() {
       </div>
 
       {menuOpen && (
-        <nav id="mobile-navigation" className="border-t border-white/10 bg-[#0d0d0d] p-3 xl:hidden" aria-label="Mobile navigation">
+        <nav id="mobile-navigation" className="border-t border-white/10 bg-[#0d0d0d] p-3 md:hidden" aria-label="Mobile navigation">
           <div className="section-shell grid gap-1 sm:grid-cols-2">
             {navigation.map((item) => {
               const active = isCurrent(pathname, item.href);

@@ -1,5 +1,6 @@
 import { MathJaxRenderer } from "@/components/ui/MathJaxRenderer";
 import type { SolutionStep } from "@/data/linesAndPlanesData";
+import type { ReactNode } from "react";
 
 type StepByStepSolutionProps = {
   steps: SolutionStep[];
@@ -7,9 +8,10 @@ type StepByStepSolutionProps = {
   defaultOpen?: boolean;
   title?: string;
   appearance?: "dark" | "paper";
+  children?: ReactNode;
 };
 
-export function StepByStepSolution({ steps, answer, defaultOpen = false, title = "View worked solution", appearance = "dark" }: StepByStepSolutionProps) {
+export function StepByStepSolution({ steps, answer, defaultOpen = false, title = "View worked solution", appearance = "dark", children }: StepByStepSolutionProps) {
   const paper = appearance === "paper";
   return (
     <details open={defaultOpen} className={`border ${paper ? "border-slate-300 bg-white text-slate-800" : "border-white/15 bg-[#111] text-zinc-200"}`}>
@@ -23,6 +25,7 @@ export function StepByStepSolution({ steps, answer, defaultOpen = false, title =
             </li>
           ))}
         </ol>
+        {children}
         {answer && <div className={`mt-7 border-l-4 p-5 ${paper ? "border-sky-800 bg-sky-50" : "border-sky-400 bg-sky-400/[0.055]"}`}><p className="text-base font-semibold">Final answer</p><MathJaxRenderer math={answer} className="mt-3 text-base leading-8" /></div>}
       </div>
     </details>

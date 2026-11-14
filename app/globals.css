@@ -345,3 +345,63 @@ a {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Lesson pages */
+.study-shell { width: min(100%, 1000px); }
+.study-header { max-width: 45rem; margin-bottom: 1.5rem; }
+.study-header h1 { margin-top: .65rem; font-size: clamp(1.8rem, 1.2rem + 2vw, 2.85rem); font-weight: 650; letter-spacing: -.035em; line-height: 1.16; text-wrap: balance; }
+.lesson-breadcrumb { display: flex; align-items: center; gap: .55rem; color: #a4a6ad; font-size: .875rem; }
+.lesson-breadcrumb a { color: #e3e5e8; }
+.lesson-breadcrumb a:hover, .lesson-jumps a:hover, .lesson-tools a:hover, .lesson-pagination a:hover { color: #a4def7; }
+.lesson-video { scroll-margin-top: .45rem; }
+.lesson-player { display: grid; gap: 1rem; min-width: 0; }
+.lesson-player > :first-child { min-width: 0; border-radius: .38rem; }
+.lesson-chapters { min-width: 0; }
+.lesson-chapters-header { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding: 0 .5rem .5rem; border-bottom: 1px solid var(--line); }
+.lesson-chapters-header h2 { color: #f3f4f6; font-size: .94rem; font-weight: 650; }
+.lesson-chapters-header > span, .lesson-chapter-time { color: #a5b6c2; font: 500 .8rem/1.5 var(--font-geist-mono); font-variant-numeric: tabular-nums; }
+.lesson-chapters li + li { border-top: 1px solid var(--line); }
+.lesson-chapters button { display: grid; width: 100%; min-height: 2.75rem; padding: .55rem .5rem; grid-template-columns: 2.7rem minmax(0,1fr); align-items: baseline; gap: .4rem; cursor: pointer; text-align: left; font-size: .875rem; line-height: 1.45; color: #e3e5e8; }
+.lesson-chapters button:hover { background: #15171a; }
+.lesson-chapters button[aria-current="true"] { color: #d1eeff; background: #11212a; box-shadow: inset 2px 0 #56b9e4; }
+.lesson-chapters button[aria-current="true"] .lesson-chapter-time { color: #9bdcfc; }
+.lesson-video-file { display: inline-block; margin: .65rem .5rem 0; color: #bec3ca; font-size: .825rem; }
+.lesson-video-file:hover { color: #fff; }
+.lesson-jumps { display: flex; flex-wrap: wrap; gap: .3rem 1.35rem; margin: 1.4rem 0 0; padding: .55rem 0; border-block: 1px solid var(--line); color: #d3d6dc; font-size: .875rem; font-weight: 600; }
+.lesson-jumps a { display: inline-flex; min-height: 2rem; align-items: center; }
+.reading-main { width: min(100%, 45rem); padding-top: 1.75rem; }
+.lesson-prose { color: #dfe1e5; font-size: clamp(1rem, .97rem + .14vw, 1.1rem); line-height: 1.7; white-space: normal; overflow-wrap: break-word; }
+.lesson-prose[data-ready="false"] { color: #dfe1e5; }
+.lesson-prose[data-ready="false"]::after { display: none; }
+.lesson-prose strong { color: #f3f4f6; font-weight: 650; }
+.lesson-prose p { max-width: 70ch; margin-block: .75rem; }
+.lesson-prose ul, .lesson-prose ol { padding-inline-start: 1.4rem; margin: .65rem 0; }
+.lesson-prose ul { list-style: disc; }
+.lesson-prose ol { list-style: decimal; }
+.lesson-prose li + li { margin-top: .45rem; }
+.lesson-block + .lesson-block, .lesson-homework-block { margin-top: 2.1rem; padding-top: 1.45rem; border-top: 1px solid var(--line); }
+.lesson-block h2 { margin: 0 0 .7rem; font-size: clamp(1.28rem, 1.12rem + .58vw, 1.67rem); font-weight: 650; line-height: 1.25; letter-spacing: -.025em; color: #f4f5f7; }
+.lesson-block h3 { margin: 0 0 .45rem; color: #f3f4f6; font-size: 1.06em; line-height: 1.4; font-weight: 650; }
+.lesson-lead { color: #e8e9ec; }
+.lesson-prose figure { margin-block: 1.1rem; }
+.lesson-equation { overflow-x: auto; padding: .5rem .85rem; margin: .72rem 0; border-left: 2px solid #506976; background: #14191c; color: #eef5fa; }
+.lesson-equation mjx-container { margin-block: .15rem !important; }
+.lesson-method li::marker { color: #abb8c2; font-variant-numeric: tabular-nums; }
+.lesson-method li p { margin: .16rem 0 .6rem; }
+.lesson-example { border-left: 2px solid #3c5563; padding: .15rem 0 .15rem .9rem; }
+.lesson-example-step { margin-top: .9rem; }
+.lesson-disclosure { border-top: 1px solid var(--line); }
+.lesson-disclosure + .lesson-block { margin-top: 1.65rem; }
+.lesson-disclosure summary { min-height: 2.75rem; padding: .56rem 0; cursor: pointer; color: #d5ebf8; font-size: .95rem; font-weight: 600; }
+.lesson-disclosure summary:hover { color: #fff; }
+.lesson-disclosure[open] > :not(summary) { margin-inline-start: .75rem; }
+.lesson-recap { margin-top: 1.4rem; }
+.lesson-more .lesson-disclosure:last-child { border-bottom: 1px solid var(--line); }
+.lesson-homework-block .lesson-homework { margin-top: 0; border: 0; padding-top: 0; }
+.lesson-tools, .lesson-pagination { display: flex; flex-wrap: wrap; gap: .8rem 1.25rem; border-top: 1px solid var(--line); padding-top: .9rem; margin-top: 1.45rem; font-size: .875rem; color: #c4c8cf; }
+.lesson-pagination { justify-content: space-between; font-weight: 600; }
+.lesson-unit-review { margin-top: 1.75rem; }
+.lesson-unit-review h3 { margin-bottom: .75rem; }
+@media (min-width: 780px) {
+  .lesson-player { grid-template-columns: minmax(0, 1fr) 15rem; align-items: start; gap: 1.25rem; }
+}

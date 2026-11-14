@@ -1,6 +1,6 @@
 import type { HomeworkSet } from "./linesAndPlanesData";
 
-// Original practice follows the supplied section sequence and class methods.
+// Start with a recording example or close variation before independent practice.
 export const sectionHomeworkSets: HomeworkSet[] = [
   {
     id: "homework-8-1",
@@ -11,32 +11,34 @@ export const sectionHomeworkSets: HomeworkSet[] = [
     problems: [
       {
         title: "Build and interpret a vector equation",
-        prompt: String.raw`A line passes through \(A(3,-2)\) and is parallel to \(\vec m=[2,5]\). Derive its vector equation, write parametric equations, and find the points for \(t=0,1,-1\).`,
+        prompt: String.raw`A line passes through \(P_0(5,7)\) and is parallel to \(\vec m=[6,11]\). (a) Use the displacement from \(P_0\) to write a vector equation. (b) Write the two parametric equations. (c) Find the points for \(t=0,1,3,-1\).`,
+        review: { time: "06:40", topic: "a point and a direction" },
         tags: ["K", "A", "C"],
-        hint: "The displacement from A to any point of the line is a scalar multiple of m.",
+        hint: "Start at P₀. The displacement to any other point is a scalar multiple of the direction.",
         steps: [
           {
             label: "Derive the form",
-            text: "A position vector reaches A first, then moves along the line.",
-            math: String.raw`\[\vec r=\overrightarrow{OA}+\overrightarrow{AP}=[3,-2]+t[2,5],\quad t\in\mathbb R\]`
+            text: "Reach the known point first, then move along the line.",
+            math: String.raw`\[\vec r=\overrightarrow{OP_0}+\overrightarrow{P_0P}=[5,7]+t[6,11],\quad t\in\mathbb R\]`
           },
           {
             label: "Read components",
             text: "Use the same parameter in both coordinates.",
-            math: String.raw`\[x=3+2t,\qquad y=-2+5t\]`
+            math: String.raw`\[x=5+6t,\qquad y=7+11t\]`
           },
           {
             label: "Generate and check",
             text: "Substitute each parameter into both coordinates.",
-            math: String.raw`\[t=0:(3,-2),\quad t=1:(5,3),\quad t=-1:(1,-7)\]`
+            math: String.raw`\[\begin{aligned}t=0&:(5,7)&t=1&:(11,18)\\ t=3&:(23,40)&t=-1&:(-1,-4)\end{aligned}\]`
           }
         ],
-        answer: String.raw`\(\vec r=[3,-2]+t[2,5]\), with points \((3,-2),(5,3),(1,-7)\).`,
+        answer: String.raw`\(\vec r=[5,7]+t[6,11]\). The points, in order, are \((5,7),(11,18),(23,40),(-1,-4)\).`,
         id: "hw-8-1-p1"
       },
       {
         title: "A line through two points",
-        prompt: String.raw`Find vector and parametric equations through \(P(-1,4)\) and \(Q(5,-2)\). Use a simplified integer direction and verify Q.`,
+        prompt: String.raw`The line passes through \(P(-1,4)\) and \(Q(5,-2)\). (a) Subtract the coordinates and simplify the direction. (b) Write vector and parametric equations using P. (c) Find the parameter that reaches Q.`,
+        review: { time: "09:45", topic: "writing a line through two points" },
         tags: ["K", "A"],
         hint: "Subtract P from Q, then divide both direction components by a common nonzero factor.",
         steps: [
@@ -145,7 +147,8 @@ export const sectionHomeworkSets: HomeworkSet[] = [
     problems: [
       {
         title: "Cartesian to vector and parametric form",
-        prompt: String.raw`Convert \(2x-3y+6=0\) to vector and parametric equations. Verify the result by substitution.`,
+        prompt: String.raw`The line is \(2x-3y+6=0\). (a) State a normal and use it to find a direction. (b) Find a point on the line and write vector and parametric equations. (c) Substitute the parametric equations into the Cartesian equation to check your work.`,
+        review: { time: "21:40", topic: "Cartesian to vector and parametric form" },
         tags: ["K", "A"],
         hint: "Read a normal from the coefficients, then choose a perpendicular direction.",
         steps: [
@@ -170,7 +173,8 @@ export const sectionHomeworkSets: HomeworkSet[] = [
       },
       {
         title: "Vector to symmetric and Cartesian form",
-        prompt: String.raw`Convert \(\vec r=[2,-1]+t[3,2]\) to symmetric and Cartesian forms. Check the Cartesian normal.`,
+        prompt: String.raw`The line is \(\vec r=[2,-1]+t[3,2]\). (a) Write the parametric equations and solve both for t. (b) Equate the two expressions for t to obtain Cartesian form. (c) Check the Cartesian normal against the original direction.`,
+        review: { time: "22:00", topic: "vector to Cartesian form" },
         tags: ["A", "C"],
         hint: "First separate the coordinates and solve both for t.",
         steps: [
@@ -279,27 +283,28 @@ export const sectionHomeworkSets: HomeworkSet[] = [
     problems: [
       {
         title: "Two points with a fixed coordinate",
-        prompt: String.raw`Find vector, parametric, and symmetric equations through \(A(1,2,-1)\) and \(B(5,2,5)\). Verify B using your simplified direction.`,
+        prompt: String.raw`The line passes through \(P(-2,3,5)\) and \(Q(-2,4,-1)\). (a) Find \(\overrightarrow{PQ}\) and write the vector equation. (b) Read the parametric equations and convert them to symmetric form. (c) Explain which coordinate stays fixed and find the parameter that reaches Q.`,
+        review: { time: "12:40", topic: "a zero direction component" },
         tags: ["K", "A"],
-        hint: "The equal y-coordinates produce a zero direction component.",
+        hint: "The equal x-coordinates give a zero direction component, so x stays fixed.",
         steps: [
           {
             label: "Direction",
-            text: "Subtract A from B and simplify.",
-            math: String.raw`\[\overrightarrow{AB}=[4,0,6]=2[2,0,3]\]`
+            text: "Subtract P from Q in the same order for each coordinate.",
+            math: String.raw`\[\overrightarrow{PQ}=[-2-(-2),4-3,-1-5]=[0,1,-6]\]`
           },
           {
             label: "Vector and parametric forms",
-            text: "Retain the fixed y-coordinate.",
-            math: String.raw`\[\vec r=[1,2,-1]+t[2,0,3],\quad x=1+2t,\quad y=2,\quad z=-1+3t\]`
+            text: "Use P as the starting point. The zero in the direction keeps x fixed.",
+            math: String.raw`\[\begin{aligned}\vec r&=[-2,3,5]+t[0,1,-6]\\ x&=-2,\qquad y=3+t,\qquad z=5-6t\end{aligned}\]`
           },
           {
             label: "Symmetric form and verification",
-            text: "Do not divide by the zero y-component.",
-            math: String.raw`\[y=2,\quad\frac{x-1}{2}=\frac{z+1}{3},\qquad t=2\Rightarrow B(5,2,5)\]`
+            text: "Equate the two expressions for t. Keep x as a separate condition.",
+            math: String.raw`\[x=-2,\quad y-3=\frac{z-5}{-6},\qquad t=1\Rightarrow Q(-2,4,-1)\]`
           }
         ],
-        answer: String.raw`\(\vec r=[1,2,-1]+t[2,0,3]\), with \(y=2\) and \(\frac{x-1}{2}=\frac{z+1}{3}\).`,
+        answer: String.raw`\(\vec r=[-2,3,5]+t[0,1,-6]\). The symmetric description is \(x=-2\) and \(y-3=\frac{z-5}{-6}\). Q occurs at \(t=1\).`,
         id: "hw-8-3-p1"
       },
       {
@@ -413,19 +418,20 @@ export const sectionHomeworkSets: HomeworkSet[] = [
     problems: [
       {
         title: "A plane through three points",
-        prompt: String.raw`Find vector and parametric equations through \(A(1,0,2)\), \(B(2,1,2)\), and \(C(1,1,3)\). Verify all three points.`,
+        prompt: String.raw`A plane contains \(A(0,1,0)\), \(B(2,1,1)\), and \(C(1,3,0)\). (a) Find two direction vectors starting at A. Explain why they define a plane. (b) Write the vector and parametric equations. (c) Find the parameter pair that gives each of A, B, and C.`,
+        review: { time: "06:00", topic: "a plane through three points" },
         tags: ["K", "A"],
         hint: "Use AB and AC from the same starting point.",
         steps: [
           {
             label: "Build spans",
             text: "Subtract A from each other point.",
-            math: String.raw`\[\vec a=\overrightarrow{AB}=[1,1,0],\quad\vec b=\overrightarrow{AC}=[0,1,1]\]`
+            math: String.raw`\[\vec a=\overrightarrow{AB}=[2,0,1],\quad\vec b=\overrightarrow{AC}=[1,2,0]\]`
           },
           {
             label: "Write equations",
             text: "The spans are not scalar multiples, so use two independent parameters.",
-            math: String.raw`\[\vec r=[1,0,2]+s[1,1,0]+t[0,1,1],\quad x=1+s,\ y=s+t,\ z=2+t\]`
+            math: String.raw`\[\begin{aligned}\vec r&=[0,1,0]+s[2,0,1]+t[1,2,0]\\ x&=2s+t,\qquad y=1+2t,\qquad z=s\end{aligned}\]`
           },
           {
             label: "Verify points",
@@ -433,7 +439,7 @@ export const sectionHomeworkSets: HomeworkSet[] = [
             math: String.raw`\[(s,t)=(0,0):A,\quad(1,0):B,\quad(0,1):C\]`
           }
         ],
-        answer: String.raw`\(\vec r=[1,0,2]+s[1,1,0]+t[0,1,1]\), with \(s,t\in\mathbb R\).`,
+        answer: String.raw`\(\vec r=[0,1,0]+s[2,0,1]+t[1,2,0]\), with \(s,t\in\mathbb R\).`,
         id: "hw-8-4-p1"
       },
       {
@@ -513,7 +519,8 @@ export const sectionHomeworkSets: HomeworkSet[] = [
       },
       {
         title: "When three points fail to determine a unique plane",
-        prompt: String.raw`Do \(A(0,1,0)\), \(B(2,1,1)\), and \(C(4,1,2)\) determine a unique plane? Justify and give two different planes containing all three points.`,
+        prompt: String.raw`Consider \(A(0,1,0)\), \(B(2,1,1)\), and \(C(4,1,2)\). (a) Compare \(\overrightarrow{AB}\) and \(\overrightarrow{AC}\). (b) Decide whether the points determine a unique plane. (c) Give two distinct planes containing all three points.`,
+        review: { time: "06:50", topic: "three collinear points" },
         tags: ["T", "C"],
         hint: "Check whether the connecting directions are scalar multiples.",
         steps: [
@@ -547,7 +554,8 @@ export const sectionHomeworkSets: HomeworkSet[] = [
     problems: [
       {
         title: "Vector to Cartesian using a cross product",
-        prompt: String.raw`Convert \(\vec r=[1,0,2]+s[1,1,0]+t[0,1,1]\) to Cartesian form. Verify that the normal is perpendicular to both spans.`,
+        prompt: String.raw`The plane is \(\vec r=[1,0,2]+s[1,1,0]+t[0,1,1]\). (a) Use the two spanning vectors to find a normal. (b) Use the anchor and normal to write a Cartesian equation. (c) Verify that the normal is perpendicular to both spanning vectors.`,
+        review: { time: "11:50", topic: "a normal from two plane directions" },
         tags: ["K", "A"],
         hint: "Cross the two independent directions, then use the anchor.",
         steps: [
@@ -681,7 +689,8 @@ export const sectionHomeworkSets: HomeworkSet[] = [
     problems: [
       {
         title: "Plot a point and its projection",
-        prompt: String.raw`Sketch \(P(2,-1,3)\) on labelled three-dimensional axes. Mark its projection H onto the xy-plane and describe the coordinate movements.`,
+        prompt: String.raw`You are given the point \(P(2,-1,3)\). (a) Draw labelled \(x\)-, \(y\)-, and \(z\)-axes. (b) Draw the coordinate movements from the origin to P. (c) Mark and give the coordinates of the projection H onto the \(xy\)-plane.`,
+        review: { time: "19:50", topic: "plotting a point in three dimensions" },
         tags: ["K", "A", "C"],
         hint: "The xy-plane has z=0. Keep x and y when finding the projection.",
         steps: [
@@ -731,7 +740,8 @@ export const sectionHomeworkSets: HomeworkSet[] = [
       },
       {
         title: "Intercepts and coordinate-plane traces",
-        prompt: String.raw`Sketch \(2x+3y+6z=6\). Find all three axis intercepts and all three coordinate-plane traces. Explain why the drawn triangle is not the whole plane.`,
+        prompt: String.raw`The plane is \(2x+3y+6z=6\). (a) Find the three axis intercepts and use them to sketch a patch of the plane. (b) Give the equation of each coordinate-plane trace. (c) Explain what the triangle shows about the full plane.`,
+        review: { time: "21:00", topic: "sketching a plane from its intercepts" },
         tags: ["K", "A", "C"],
         hint: "An axis intercept sets two coordinates to zero. A trace sets only one to zero.",
         steps: [
@@ -815,7 +825,8 @@ export const sectionHomeworkSets: HomeworkSet[] = [
     problems: [
       {
         title: "A line crossing a plane",
-        prompt: String.raw`Find the intersection of \(L:\vec r=[1,0,2]+t[1,2,-1]\) and \(\Pi:x+y+z=5\). Verify the intersection in both objects.`,
+        prompt: String.raw`The line is \(L:\vec r=[1,0,2]+t[1,2,-1]\), and the plane is \(\Pi:x+y+z=5\). (a) Substitute all three line coordinates into the plane equation. (b) Solve for t and find the intersection point. (c) Verify that it belongs to both the line and the plane.`,
+        review: { time: "03:20", topic: "a line crossing a plane" },
         tags: ["K", "A"],
         hint: "Substitute all three coordinate expressions into the plane.",
         steps: [
@@ -865,27 +876,28 @@ export const sectionHomeworkSets: HomeworkSet[] = [
       },
       {
         title: "Two intersecting lines",
-        prompt: String.raw`Find the common point of \(L_1:\vec r=s[1,1,0]\) and \(L_2:\vec r=[1,0,0]+u[-1,1,0]\). Use separate parameters and verify all coordinates.`,
+        prompt: String.raw`The lines are \(L_1:\vec r=[1,0,2]+s[2,1,-1]\) and \(L_2:\vec r=[4,3,-1]+t[-1,1,-1]\). (a) Write an equation for each coordinate using separate parameters. (b) Find the candidate values of s and t from x and y. (c) Check z and give the common point if it exists.`,
+        review: { time: "13:40", topic: "two lines in space" },
         tags: ["K", "A"],
         hint: "Equate x, y, and z separately.",
         steps: [
           {
             label: "Coordinate system",
             text: "One parameter pair must satisfy all equations.",
-            math: String.raw`\[s=1-u,\qquad s=u,\qquad0=0\]`
+            math: String.raw`\[1+2s=4-t,\qquad s=3+t,\qquad 2-s=-1-t\]`
           },
           {
             label: "Solve",
-            text: "Substitute u=s into the first equation.",
-            math: String.raw`\[2s=1\Rightarrow s=u=\tfrac12\]`
+            text: "Use t=s−3 from the y-equation in the x-equation.",
+            math: String.raw`\[1+2s=4-(s-3)\Rightarrow s=2,\qquad t=-1\]`
           },
           {
             label: "Verify both lines",
             text: "Both produce the same ordered triple.",
-            math: String.raw`\[\tfrac12[1,1,0]=[1,0,0]+\tfrac12[-1,1,0]=[\tfrac12,\tfrac12,0]\]`
+            math: String.raw`\[L_1(2)=L_2(-1)=[5,2,0]\]`
           }
         ],
-        answer: String.raw`The lines intersect at \((\tfrac12,\tfrac12,0)\).`,
+        answer: String.raw`The lines intersect at \((5,2,0)\). Their directions are not parallel, so this is their only common point.`,
         id: "hw-9-1-p3"
       },
       {
@@ -949,7 +961,8 @@ export const sectionHomeworkSets: HomeworkSet[] = [
     problems: [
       {
         title: "A unique solution by elimination",
-        prompt: String.raw`Solve \(x+y+z=6\), \(2x-y+z=3\), and \(x+2y-z=2\). Show elimination and verify all original equations.`,
+        prompt: String.raw`Consider the system \(x+y+z=6\), \(2x-y+z=3\), and \(x+2y-z=2\). (a) Eliminate x to obtain two equations in y and z. (b) Solve the reduced system and back-substitute to find x. (c) Check all three equations and state whether the solution is unique.`,
+        review: { time: "16:15", topic: "elimination and back-substitution" },
         tags: ["K", "A"],
         hint: "Eliminate x from two equation pairs first.",
         steps: [
@@ -1082,7 +1095,8 @@ export const sectionHomeworkSets: HomeworkSet[] = [
     problems: [
       {
         title: "A line of intersection",
-        prompt: String.raw`Find a vector equation for the intersection of \(x+y+z=3\) and \(x-y+z=1\). Verify both the anchor and direction.`,
+        prompt: String.raw`The planes are \(x+y+z=3\) and \(x-y+z=1\). (a) Eliminate one coordinate. (b) Give a vector equation for the intersection using one free parameter. (c) Check the starting point and direction in both planes.`,
+        review: { time: "21:45", topic: "the intersection of two planes" },
         tags: ["K", "A", "C"],
         hint: "Subtract the plane equations, then choose one free coordinate.",
         steps: [
@@ -1216,7 +1230,8 @@ export const sectionHomeworkSets: HomeworkSet[] = [
     problems: [
       {
         title: "One common point",
-        prompt: String.raw`Find the common intersection of \(x+y+z=6\), \(x-y+z=2\), and \(x+y-z=0\). Verify the answer in all three planes.`,
+        prompt: String.raw`The planes are \(x+y+z=6\), \(x-y+z=2\), and \(x+y-z=0\). (a) Use differences of equations to find y and z. (b) Find x and state the common intersection. (c) Verify the point in all three planes.`,
+        review: { time: "26:40", topic: "three planes meeting at one point" },
         tags: ["K", "A"],
         hint: "Subtract equation pairs to isolate y and z.",
         steps: [
@@ -1316,19 +1331,20 @@ export const sectionHomeworkSets: HomeworkSet[] = [
       },
       {
         title: "A family with a point or a line",
-        prompt: String.raw`Classify the common solution of \(x+y+z=3\), \(x-y+z=1\), and \(x+y+kz=3\) for every real k. Give the complete set in each case.`,
+        prompt: String.raw`The planes are \(x+y+z=3\), \(x-y+z=1\), and \(x+y+kz=k+2\), where k is real. (a) Find the line shared by the first two planes. (b) Use the third equation to find the special value of k. (c) Give the complete common set for the special value and for every other value.`,
+        review: { time: "31:40", topic: "a parameter in three planes" },
         tags: ["A", "T", "C"],
         hint: "Subtract the first equation from the third and keep the exceptional k-value.",
         steps: [
           {
             label: "Reduce",
             text: "The first pair gives y=1 and x+z=2.",
-            math: String.raw`\[y=1,\quad x+z=2,\quad(k-1)z=0\]`
+            math: String.raw`\[y=1,\quad x+z=2,\quad (k-1)z=(k+2)-3=k-1\]`
           },
           {
             label: "Non-exceptional case",
             text: "For k not equal to 1, z is fixed.",
-            math: String.raw`\[k\ne1\Rightarrow z=0,\quad x=2,\quad y=1\]`
+            math: String.raw`\[k\ne1\Rightarrow z=1,\quad x=1,\quad y=1\]`
           },
           {
             label: "Exceptional case",
@@ -1336,7 +1352,7 @@ export const sectionHomeworkSets: HomeworkSet[] = [
             math: String.raw`\[k=1\Rightarrow\vec r=[2,1,0]+t[-1,0,1]\]`
           }
         ],
-        answer: String.raw`For \(k\ne1\), the common set is the point \((2,1,0)\). For \(k=1\), it is the line \([2,1,0]+t[-1,0,1]\).`,
+        answer: String.raw`For \(k\ne1\), the common set is the point \((1,1,1)\). For \(k=1\), it is the line \([2,1,0]+t[-1,0,1]\).`,
         id: "hw-9-4-p5"
       }
     ]
@@ -1350,7 +1366,8 @@ export const sectionHomeworkSets: HomeworkSet[] = [
     problems: [
       {
         title: "Cartesian distance and perpendicular foot in R²",
-        prompt: String.raw`Find the exact distance from \(P(1,2)\) to \(3x+4y-5=0\). Find the perpendicular foot H and verify it.`,
+        prompt: String.raw`The point is \(P(1,2)\) and the line is \(3x+4y-5=0\). (a) Find the exact perpendicular distance. (b) Find the nearest point H on the line. (c) Check that H is on the line and that the connector is perpendicular to it.`,
+        review: { time: "03:20", topic: "point-to-line distance in two dimensions" },
         tags: ["K", "A", "C"],
         hint: "Use the normal [3,4]. The signed residual is 6 and its squared magnitude is 25.",
         steps: [
@@ -1375,7 +1392,8 @@ export const sectionHomeworkSets: HomeworkSet[] = [
       },
       {
         title: "Cross-product distance in R³",
-        prompt: String.raw`Find the exact distance from \(Q(1,0,2)\) to \(L:\vec r=t[1,1,0]\). Verify it using a perpendicular foot.`,
+        prompt: String.raw`The point is \(Q(1,0,2)\), and the line is \(L:\vec r=t[1,1,0]\). (a) Use a cross product to find the exact distance. (b) Find the perpendicular foot on L and check the distance using it.`,
+        review: { time: "09:10", topic: "the cross-product method in three dimensions" },
         tags: ["A", "T"],
         hint: "Use the origin as the line anchor and divide the parallelogram area by the direction magnitude.",
         steps: [
@@ -1479,18 +1497,19 @@ export const sectionHomeworkSets: HomeworkSet[] = [
     id: "homework-9-6",
     number: "9.6",
     title: "Distance from a point to a plane",
-    focus: "Use the normal projection, retain signed information for the foot, and check the geometry.",
+    focus: "Use normal projections to find distances, perpendicular feet, a midway plane, and the separation of skew lines.",
     estimatedMinutes: 40,
     problems: [
       {
         title: "Distance and nearest point",
-        prompt: String.raw`Find the distance from \(P(3,1,2)\) to \(2x-y+2z-3=0\), and find the perpendicular foot H. Verify both conditions for H.`,
+        prompt: String.raw`The point is \(P(3,1,2)\), and the plane is \(2x-y+2z-3=0\). (a) Find the exact distance using the plane normal. (b) Find the perpendicular foot H. (c) Check that H lies on the plane and that \(\overrightarrow{HP}\) is parallel to the normal.`,
+        review: { time: "17:05", topic: "point-to-plane distance" },
         tags: ["K", "A", "C"],
         hint: "The normal is [2,-1,2], whose squared magnitude is 9.",
         steps: [
           {
             label: "Residual and distance",
-            text: "Substitute P into the Cartesian expression.",
+            text: "Substitute P into the Cartesian expression. Use the absolute residual for distance, but keep its sign when finding the foot.",
             math: String.raw`\[f(P)=2(3)-1+2(2)-3=6,\quad\|\vec n\|=3,\quad d=2\]`
           },
           {
@@ -1533,33 +1552,34 @@ export const sectionHomeworkSets: HomeworkSet[] = [
         id: "hw-9-6-p2"
       },
       {
-        title: "Zero distance and an absolute value",
-        prompt: String.raw`Find the distance from \(P(1,-1,2)\) to \(2x+y-z+1=0\). A student says a negative signed numerator would give a negative distance. Explain the error.`,
-        tags: ["K", "T", "C"],
-        hint: "A point satisfying the Cartesian equation has no separation from the plane.",
+        title: "Shortest distance between skew lines",
+        prompt: String.raw`The lines are \(L_1:\vec r=s[1,1,0]\) and \(L_2:\vec r=[1,0,2]+t[0,1,1]\). (a) Find a common normal and construct a plane through each line with this normal. (b) Use the planes to find the exact shortest distance. (c) Verify the distance with a connector perpendicular to both lines.`,
+        review: { time: "21:40", topic: "two auxiliary planes for skew-line distance" },
+        tags: ["A", "T", "C"],
+        hint: "Cross the directions. Use an anchor from each line to find the constant in its auxiliary plane equation.",
         steps: [
           {
-            label: "Substitute",
-            text: "Use the complete expression including the constant.",
-            math: String.raw`\[2(1)+(-1)-2+1=0\]`
+            label: "Common normal",
+            text: "The cross product is nonzero, so the lines are not parallel. The result is perpendicular to both directions.",
+            math: String.raw`\[\vec n=[1,1,0]\times[0,1,1]=[1,-1,1]\]`
           },
           {
-            label: "Calculate",
-            text: "The numerator vanishes.",
-            math: String.raw`\[d=\frac{|0|}{\sqrt{2^2+1^2+(-1)^2}}=0\]`
+            label: "Distance along the common normal",
+            text: "The planes through the two lines with this normal have constants zero and three. Their positive separation also proves the nonparallel lines are skew.",
+            math: String.raw`\[\begin{aligned}\Pi_1&:x-y+z=0,\qquad \Pi_2:x-y+z=3\\ d&=\frac{|3-0|}{\sqrt{1+1+1}}=\sqrt3\end{aligned}\]`
           },
           {
-            label: "Explain the absolute value",
-            text: "A signed residual identifies a side of the plane. Its absolute value gives a non-negative length.",
-            math: String.raw`\[d(P,\Pi)=\frac{|f(P)|}{\|\vec n\|}\ge0\]`
+            label: "Verify a shortest connector",
+            text: "Choose s=0 and t=−1. The resulting connector equals the common normal, so it meets both lines at right angles.",
+            math: String.raw`\[H_1=(0,0,0),\quad H_2=(1,-1,1),\quad\overrightarrow{H_1H_2}=[1,-1,1]\]`
           }
         ],
-        answer: "P lies in the plane, so its distance is zero. A negative residual never gives a negative distance.",
+        answer: String.raw`The skew lines are \(\sqrt3\) units apart, attained between \((0,0,0)\) and \((1,-1,1)\).`,
         id: "hw-9-6-p3"
       },
       {
-        title: "Distance between parallel planes",
-        prompt: String.raw`Find the distance between \(x-y+z=3\) and \(2x-2y+2z=12\). Verify using a point on the first plane.`,
+        title: "Parallel planes and their midway plane",
+        prompt: String.raw`Find the distance between \(x-y+z=3\) and \(2x-2y+2z=12\). Verify using a point on the first plane, then find the equation of the plane midway between them.`,
         tags: ["A", "T", "C"],
         hint: "Rewrite both equations with exactly the same normal.",
         steps: [
@@ -1577,9 +1597,14 @@ export const sectionHomeworkSets: HomeworkSet[] = [
             label: "Point check",
             text: "A=(3,0,0) lies in the first plane.",
             math: String.raw`\[\frac{|3-0+0-6|}{\sqrt3}=\frac3{\sqrt3}=\sqrt3\]`
+          },
+          {
+            label: "Midway plane",
+            text: "With both normals identical, averaging the constants gives the plane at half the perpendicular separation from either side.",
+            math: String.raw`\[x-y+z=\frac{3+6}{2}=\frac92\]`
           }
         ],
-        answer: String.raw`The planes are exactly \(\sqrt3\) units apart.`,
+        answer: String.raw`The separation is \(\sqrt3\) units. The midway plane is \(x-y+z=\frac92\).`,
         id: "hw-9-6-p4"
       },
       {

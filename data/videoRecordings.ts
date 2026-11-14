@@ -1,8 +1,6 @@
-// Add the published YouTube URL or a public MP4 URL for each team recording.
-// The course displays a recording as pending until its URL is provided.
 export const recordingUrls: Record<string, string> = {
-  "video-lines": "",
-  "video-planes": "",
-  "video-intersections": "",
-  "video-distances": "",
+  "video-lines": "/course/videos/video-1.mp4",
+  "video-planes": "/course/videos/video-2.mp4",
+  "video-intersections": "/course/videos/video-3.mp4",
+  "video-distances": "/course/videos/video-4.mp4",
 };

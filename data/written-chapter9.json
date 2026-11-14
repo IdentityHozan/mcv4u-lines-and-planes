@@ -1,0 +1,224 @@
+[
+  {
+    "section": "9.1",
+    "title": "Intersections of Lines and Planes",
+    "intro": "An intersection is the set of points that satisfy every equation in the system. In three dimensions, a line can cross a plane, lie inside it, or miss it. Two lines can also miss each other without being parallel.",
+    "objectives": [
+      "Find the common set of a line and a plane by substitution.",
+      "Determine whether two lines intersect, coincide, are distinct and parallel, or are skew.",
+      "Verify an intersection using the original equations."
+    ],
+    "blocks": [
+      {
+        "title": "A line and a plane",
+        "body": "Write the line as $\\mathbf r=\\mathbf p+t\\mathbf d$, with $\\mathbf d\\ne\\mathbf 0$, and the plane as $\\mathbf n\\cdot\\mathbf r=k$, with $\\mathbf n\\ne\\mathbf 0$. Substitute the line into the plane:\n$$\n(\\mathbf n\\cdot\\mathbf d)t=k-\\mathbf n\\cdot\\mathbf p.\n$$\n\nThis equation checks all three coordinates together. If $\\mathbf n\\cdot\\mathbf d\\ne0$, solve for the one value of $t$ and substitute it into the line to get the intersection point. If $\\mathbf n\\cdot\\mathbf d=0$, the line direction is parallel to the plane. Test the starting point: if $\\mathbf n\\cdot\\mathbf p=k$, the entire line lies in the plane. Otherwise the line and plane are distinct and parallel, with no shared point."
+      },
+      {
+        "title": "Worked example: One crossing and two parallel cases",
+        "body": "**Given:** The line $\\mathbf r=(1,0,2)+t(1,2,-1)$ and the plane $x+y+z=5$.\n\n**Find:** Where the line meets the plane.\n\n**1. Write the line's coordinates.** Use $x=1+t$, $y=2t$ and $z=2-t$.\n\n**2. Substitute and solve for the parameter.**\n$$\n(1+t)+2t+(2-t)=5 \\quad\\Longrightarrow\\quad 3+2t=5 \\quad\\Longrightarrow\\quad t=1.\n$$\n\n**3. Substitute back into the line.** At $t=1$ its point is $(2,2,1)$. The plane check is $2+2+1=5$, so this point is in both objects.\n\n**What if the parameter cancels?** Change the line's direction to $(1,1,-2)$. The coordinates now add to $3$ for every $t$. In $x+y+z=3$, the result $3=3$ means the whole line lies in the plane. In $x+y+z=5$, the result $3=5$ means no point on the line lies in the plane."
+      },
+      {
+        "title": "Two lines in space",
+        "body": "Use separate parameters: $L_1:\\mathbf r=\\mathbf p+s\\mathbf d_1$ and $L_2:\\mathbf r=\\mathbf q+t\\mathbf d_2$. First compare the direction vectors. If they are scalar multiples, test whether $\\mathbf q$ lies on $L_1$. A shared point means the lines coincide. Otherwise they are distinct and parallel. For nonparallel directions, equate corresponding coordinates and solve two independent equations for $s,t$. Check those values in the third equation. If they work, the lines intersect. If no pair of parameters satisfies all three coordinates, the lines are skew.\n\nIn a two-dimensional drawing, skew lines can appear to cross. The third coordinate can expose a gap that the drawing hides. In $\\mathbb R^2$, nonparallel lines always meet."
+      },
+      {
+        "title": "Worked example: Different parameters at the same point",
+        "body": "**Given:** $L_1:\\mathbf r=(1,0,2)+s(2,1,-1)$ and $L_2:\\mathbf r=(4,3,-1)+t(-1,1,-1)$.\n\n**Find:** Whether these two lines have a point in common.\n\n**1. Match coordinates.** The directions are not proportional, so the lines could intersect or be skew. At an intersection, their $x$, $y$ and $z$ coordinates must match:\n$$\n\\begin{aligned}\n1+2s&=4-t,\\\\\ns&=3+t,\\\\\n2-s&=-1-t.\n\\end{aligned}\n$$\n\n**2. Solve two equations.** Put $s=3+t$ into the first equation. Then $7+2t=4-t$, so $t=-1$ and $s=2$. These parameters describe positions on separate lines and can have different values.\n\n**3. Check the third equation.** At those values, both sides of the $z$ equation give $0$. Substitution into either line gives the intersection $(5,2,0)$."
+      },
+      {
+        "title": "Worked example: Skew, parallel and coincident",
+        "body": "**Given:** $L_1:\\mathbf r=s(1,1,0)$ and $L_2:\\mathbf r=(1,0,1)+t(-1,1,0)$.\n\n**Find:** Their relationship.\n\n**1. Compare directions.** $(1,1,0)$ and $(-1,1,0)$ are not proportional, so the lines are either intersecting or skew.\n\n**2. Test for an intersection.** The first two coordinates give $s=t=\\tfrac12$, but the third would require $0=1$. The lines do not intersect, so they are skew.\n\n**Contrast with parallel directions.** The line $\\mathbf r=(0,0,1)+u(2,2,0)$ is distinct and parallel to $L_1$: it has a proportional direction, but its points have $z=1$ rather than $z=0$. The line $\\mathbf r=(2,2,0)+v(-1,-1,0)$ coincides with $L_1$: it has a proportional direction and the two lines share $(2,2,0)$."
+      }
+    ],
+    "summary": [
+      "Line and plane: substitute to get one parameter, an identity, or a contradiction.",
+      "Two lines: compare directions first, then check a point or solve for two separate parameters.",
+      "Verify every coordinate or equation before reporting the common set."
+    ]
+  },
+  {
+    "section": "9.2",
+    "title": "Systems of Linear Equations",
+    "intro": "A system asks which values make several equations true at once. Elimination makes the system easier to solve by replacing an equation with an equivalent restriction. The final restrictions tell you whether there is one solution, infinitely many, or none.",
+    "objectives": [
+      "Use substitution and elimination on systems of up to three equations in three unknowns.",
+      "Interpret identities, contradictions, and free variables.",
+      "Write and verify the entire solution set."
+    ],
+    "blocks": [
+      {
+        "title": "Why elimination preserves solutions",
+        "body": "You can swap equations, multiply an entire equation by a nonzero constant, or replace one equation by itself plus a multiple of another. These operations are reversible, so they preserve exactly the same solutions. Apply operations to both sides. Multiplying only the left side, or replacing both equations by the same combination, can change the system.\n\nIn a three-variable system, choose a variable with convenient coefficients and eliminate it from two equations. Solve the remaining two-variable system, then substitute back. If a variable is already isolated, substitution can be faster. Use exact fractions while working and check the final answer in the original equations."
+      },
+      {
+        "title": "Worked example: A unique solution",
+        "body": "**Given:** The system $x+y+z=6$, $2x-y+z=3$ and $x+2y-z=2$. Call the equations $E_1,E_2,E_3$.\n\n**Find:** The values of $x$, $y$ and $z$ that work in all three equations.\n\n**1. Eliminate the first variable.** Use $E_2-2E_1$ and $E_3-E_1$ to cancel their $x$ terms:\n$$\n-3y-z=-9,\\qquad y-2z=-4.\n$$\n\n**2. Eliminate the next variable.** Add three copies of the second reduced equation to the first. This gives $-7z=-21$, so $z=3$.\n\n**3. Work backwards.** With $z=3$, the second reduced equation gives $y-6=-4$, so $y=2$. Then $x+2+3=6$ gives $x=1$.\n\n**Check:** At $(1,2,3)$, the original left sides are $6$, $3$ and $2$. All three agree with the original right sides, so the unique solution is $(1,2,3)$."
+      },
+      {
+        "title": "A consistent system with free variables",
+        "body": "An identity such as $0=0$ adds no restriction. Keep the other equations. If a variable is still free to vary, give it a parameter.\n\n**Given:** $x+y+z=3$, $x-y+z=1$ and $2x+2z=4$.\n\n**1. Keep the independent conditions.** The first equation minus the second gives $2y=2$, so $y=1$. Substitution gives $x+z=2$. The third equation is twice this last condition and adds nothing.\n\n**2. Choose a free variable.** Let $z=t$. Then $x=2-t$ and $y=1$. The complete solution is\n$$\n(x,y,z)=(2-t,1,t),\\qquad t\\in\\mathbb R.\n$$\n\n**Check:** The three left sides give $3$, $1$ and $4$ for every $t$. The solutions form a line in space."
+      },
+      {
+        "title": "An inconsistent system",
+        "body": "If a row reduces to an impossibility such as $0=1$, the system has no solution. No value for a free variable can repair a contradiction.\n\nIn the previous system, replace $2x+2z=4$ with $2x+2z=5$. The first two equations still force $x+z=2$, hence $2x+2z=4$. The third requires the same left side to be $5$, so there is no common solution. This is different from a redundant equation, which agrees with the restrictions already present."
+      },
+      {
+        "title": "Reading the reduced system",
+        "body": "Count the variables actually determined by independent restrictions. With three variables, a consistent system that determines all three gives one point. One free variable gives a line, and two free variables give a plane. With no independent restrictions at all, every triple is a solution. The contradiction check comes first: an inconsistent system has no solutions regardless of how many variables appear undetermined."
+      }
+    ],
+    "summary": [
+      "Use reversible equation operations and work on both sides.",
+      "An identity is redundant; a contradiction makes the whole system inconsistent.",
+      "Use a real parameter for each free variable and verify the full result."
+    ]
+  },
+  {
+    "section": "9.3",
+    "title": "Intersection of Two Planes",
+    "intro": "Two planes in space can meet along a line, be distinct and parallel, or describe the same plane. Comparing their normals tells you which calculation to make next.",
+    "objectives": [
+      "Classify two planes using their normals and constants.",
+      "Find an intersection line by elimination or by choosing a free coordinate.",
+      "Find and verify the direction using the cross product."
+    ],
+    "blocks": [
+      {
+        "title": "The three possible common sets",
+        "body": "Write the planes as $\\mathbf n_1\\cdot\\mathbf r=k_1$ and $\\mathbf n_2\\cdot\\mathbf r=k_2$. If $\\mathbf n_2=\\lambda\\mathbf n_1$ for a nonzero $\\lambda$, compare the constants using that same multiplier. If $k_2=\\lambda k_1$, the planes coincide. If the constants do not scale together, the planes are distinct and parallel.\n\nIf the normals are not parallel, the planes meet in a line. They give two independent linear restrictions on three coordinates, so one coordinate can be chosen freely. A single common point is impossible for two planes: any common point can be moved along a direction perpendicular to both normals without leaving either plane."
+      },
+      {
+        "title": "Worked example: Find the line by elimination",
+        "body": "**Given:** The planes $x+y+z=3$ and $x-y+z=1$.\n\n**Find:** The line of intersection.\n\n**1. Subtract to isolate a coordinate.** The difference is $2y=2$, so $y=1$. Substituting into either plane gives $x+z=2$.\n\n**2. Choose a free coordinate.** Let $z=t$. Then $x=2-t$, and $y$ stays fixed:\n$$\n\\mathbf r=(2,1,0)+t(-1,0,1),\\qquad t\\in\\mathbb R.\n$$\n\n**3. Check the whole line.** The anchor $(2,1,0)$ satisfies both equations. The direction is perpendicular to both normals: $(1,1,1)\\cdot(-1,0,1)=0$ and $(1,-1,1)\\cdot(-1,0,1)=0$. Moving along that direction keeps you on both planes."
+      },
+      {
+        "title": "Worked example: Parameter substitution and the cross product",
+        "body": "**Given:** The planes $2x-y+3z=-2$ and $x-3z=1$.\n\n**Find:** The intersection line in vector form.\n\n**1. Use the simpler equation.** Let $z=t$. The second equation gives $x=1+3t$.\n\n**2. Substitute into the other plane.** Now $2(1+3t)-y+3t=-2$, so $y=4+9t$. The intersection line is\n$$\n\\mathbf r=(1,4,0)+t(3,9,1),\\qquad t\\in\\mathbb R.\n$$\n\n**Another route: cross product.** The normals give $(2,-1,3)\\times(1,0,-3)=(3,9,1)$, the same direction. A direction alone does not tell you where the line is. Find a common point as well: set $z=0$ and solve to get $(1,4,0)$. If setting one coordinate to zero leaves no common point, try a different coordinate."
+      },
+      {
+        "title": "Worked example: Same orientation, different constants",
+        "body": "**Given:** $x-y+z=4$ and $2x-2y+2z=8$.\n\n**Find:** Whether the planes coincide, are distinct and parallel, or intersect along a line.\n\n**1. Match the normal coefficients.** Divide the entire second equation by $2$, including its right side.\n\n**2. Compare the constants.** Both equations now read $x-y+z=4$, so the planes coincide. If the original second constant were $10$, the scaled equation would read $x-y+z=5$. The left sides would match but the right sides would not. Then no point could satisfy both, so the planes would be distinct and parallel."
+      },
+      {
+        "title": "A line parallel to the intersection",
+        "body": "If the question gives a new starting point, keep that point and use only the direction of the intersection. For example, a line through $(5,-2,3)$ parallel to the intersection of $x+2y-z=6$ and $y+2z=1$ has direction $(1,2,-1)\\times(0,1,2)=(5,-2,1)$. The requested line is $\\mathbf r=(5,-2,3)+t(5,-2,1)$, $t\\in\\mathbb R$. It does not have to lie in either original plane."
+      }
+    ],
+    "summary": [
+      "Nonparallel normals give a line of intersection.",
+      "Parallel normals require checking the constants with the same scale factor.",
+      "Use elimination or a free coordinate for the whole line; the cross product gives its direction."
+    ]
+  },
+  {
+    "section": "9.4",
+    "title": "Intersection of Three Planes",
+    "intro": "For three planes, a solution belongs to all three at once. Even if every pair of planes intersects, the three pairwise intersections can be different lines and the complete system can still be inconsistent.",
+    "objectives": [
+      "Use the relationships among the normals to predict possible configurations.",
+      "Classify the common set as a point, a line, a plane, or empty.",
+      "Handle parameter-dependent equations without dividing by a possible zero."
+    ],
+    "blocks": [
+      {
+        "title": "From normal vectors to configurations",
+        "body": "Compare the normal vectors before solving. If they are all parallel, the planes coincide when the constants scale correctly across all three equations. If any two planes in this group are distinct, the common set is empty. This includes both three distinct parallel planes and two coincident planes with a third distinct parallel plane.\n\nIf exactly one pair of normals is parallel, inspect that pair. A distinct parallel pair makes the whole system inconsistent, even if the third plane cuts each. A coincident pair leaves two different, nonparallel planes to solve; their common set is a line.\n\nIf no pair of normals is parallel, test whether the three normals are coplanar. The scalar triple product $\\mathbf n_1\\cdot(\\mathbf n_2\\times\\mathbf n_3)$ is nonzero exactly when the normals are independent. Then there is one common point. A zero triple product in this case means the normals give only two independent directions. The equations may agree along a common line, or a contradiction may leave no common point. The constants distinguish those possibilities."
+      },
+      {
+        "title": "Worked example: Three planes through one point",
+        "body": "**Given:** $E_1:x+y+z=6$, $E_2:x-y+z=2$ and $E_3:x+y-z=0$.\n\n**Find:** The set of points common to all three planes.\n\n**1. Subtract to isolate two coordinates.** $E_1-E_2$ gives $2y=4$, and $E_1-E_3$ gives $2z=6$. So $y=2$ and $z=3$.\n\n**2. Find the last coordinate.** Put $y=2$ and $z=3$ into $E_1$. Then $x+2+3=6$, so $x=1$.\n\n**3. Check all three planes.** At $(1,2,3)$ the left sides are $1+2+3=6$, $1-2+3=2$ and $1+2-3=0$. All three coordinates were fixed, so the common set is just that point."
+      },
+      {
+        "title": "Worked example: Pairwise intersections without a common point",
+        "body": "**Given:** $x+y=0$, $y+z=0$ and $x-z=1$.\n\n**Find:** Whether the three planes have any point in common.\n\n**1. Find what the first two planes require.** They imply $x=z$, so every point on their intersection has $x-z=0$.\n\n**2. Check the third plane.** It requires $x-z=1$, which contradicts $x-z=0$. There is no point in all three planes.\n\n**Why the pairwise picture can fool you.** Each pair still intersects because their normals are not proportional. The three intersection lines are distinct and parallel. For example, the first two planes share $(t,-t,t)$, and none of those points lies on the third plane."
+      },
+      {
+        "title": "Worked example: A parameter changes the common set",
+        "body": "**Given:** $x+y+z=3$, $x-y+z=1$ and $x+y+kz=k+2$.\n\n**Find:** The common set for each value of $k$.\n\n**1. Start with the two fixed equations.** Subtract them to get $y=1$. Then $x+z=2$, so $x=2-z$.\n\n**2. Use the third equation to find the special value.**\n$$\n(2-z)+1+kz=k+2\\quad\\Longrightarrow\\quad(k-1)z=k-1.\n$$\nDo not divide by $k-1$ until you know it is nonzero.\n\n**3. Split into two cases.** If $k\\ne1$, divide to get $z=1$, so the common set is the point $(1,1,1)$. If $k=1$, the third equation repeats the first, so the common set is the line\n$$\n\\mathbf r=(2,1,0)+t(-1,0,1),\\qquad t\\in\\mathbb R.\n$$\n\n**Check:** The point $(1,1,1)$ gives $1+1+k=k+2$ in the third equation. When $k=1$, any point on the stated line has $y=1$ and $x+z=2$, so it satisfies all three equations."
+      },
+      {
+        "title": "Coincident planes versus an empty intersection",
+        "body": "The planes $x+y+z=3$, $2x+2y+2z=6$, and $-x-y-z=-3$ coincide. Their intersection is the full plane $x+y+z=3$. For comparison, $x=0$, $x=1$, and $y=0$ have no common point, even though the third plane crosses each of the first two. The contradiction between $x=0$ and $x=1$ is enough to decide."
+      }
+    ],
+    "summary": [
+      "Compare normals to find the possible geometry, then check the full equations.",
+      "A consistent system of three planes gives a point, a line, or a plane according to its free variables.",
+      "Pairwise intersections need not belong to the complete system."
+    ]
+  },
+  {
+    "section": "9.5",
+    "title": "Distance from a Point to a Line",
+    "intro": "The distance from a point to a line is the length of the perpendicular segment to the line. The endpoint on the line is called the perpendicular foot. This idea gives a normal-vector formula in two dimensions and a cross-product formula in three.",
+    "objectives": [
+      "Derive and use the point-to-line distance formulas in two and three dimensions.",
+      "Find the perpendicular foot using projection.",
+      "Find the distance between distinct parallel lines."
+    ],
+    "blocks": [
+      {
+        "title": "The shortest segment is perpendicular",
+        "body": "Let $A$ be a point on the line, $\\mathbf d$ a nonzero direction, and $P$ the external point. If $H$ is the perpendicular foot, then for any point $Q$ on the line, $\\|P-Q\\|^2=\\|P-H\\|^2+\\|H-Q\\|^2$. Thus the distance is minimized at $H$. Writing $\\mathbf w=P-A$ and $H=A+t\\mathbf d$, the perpendicular condition is $(\\mathbf w-t\\mathbf d)\\cdot\\mathbf d=0$. Therefore\n$$\nt=\\frac{\\mathbf w\\cdot\\mathbf d}{\\mathbf d\\cdot\\mathbf d},\\qquad H=A+t\\mathbf d.\n$$\nThe parameter can be negative. The distance is the nonnegative length $\\|P-H\\|$, which is zero if $P$ already lies on the line."
+      },
+      {
+        "title": "Two dimensions: Project onto a normal",
+        "body": "In two dimensions a line has one perpendicular direction up to scaling. For $L:Ax+By+C=0$, use the normal $\\mathbf n=(A,B)$. If $Q$ lies on the line, then $A Q_x+B Q_y=-C$. The absolute projection of $P-Q$ onto the unit normal is\n$$\nd(P,L)=\\frac{|Ax_0+By_0+C|}{\\sqrt{A^2+B^2}}.\n$$\n\n**Given:** $P(-6,4)$ and the line $5x-3y+15=0$.\n\n**1. Substitute the point.** The signed result is $5(-6)-3(4)+15=-27$, so the numerator is $27$.\n\n**2. Divide by the normal's length.** The normal $(5,-3)$ has length $\\sqrt{5^2+(-3)^2}=\\sqrt{34}$. The distance is $27/\\sqrt{34}\\approx4.63$ units.\n\n**If the line is given in vector form:** Turn its direction $(u,v)$ into a normal $(-v,u)$. Convert to Cartesian form, or compute the projection directly as $|(P-Q)\\cdot\\mathbf n|/\\|\\mathbf n\\|$. The full segment $P-Q$ is generally longer than the perpendicular distance."
+      },
+      {
+        "title": "Three dimensions: Use area divided by base",
+        "body": "For a line in $\\mathbb R^3$, there is no single fixed normal direction to use as there is in $\\mathbb R^2$. The magnitude of $\\mathbf d\\times(P-A)$ gives the area of a parallelogram with base length $\\|\\mathbf d\\|$ and perpendicular height $d(P,L)$. Dividing area by base gives\n$$\nd(P,L)=\\frac{\\|\\mathbf d\\times(P-A)\\|}{\\|\\mathbf d\\|}.\n$$\nReversing the cross product changes the sign of its vector, but leaves its magnitude and the distance unchanged. To locate the foot, use the dot-product projection parameter instead."
+      },
+      {
+        "title": "Worked example: Find the distance and the foot in space",
+        "body": "**Given:** $P=(-1,1,6)$ and the line $\\mathbf r=(1,2,-1)+t(0,1,1)$.\n\n**Find:** The exact distance to the line and the nearest point on it.\n\n**1. Get a displacement and the line direction.** From $A=(1,2,-1)$ to $P$, the displacement is $P-A=(-2,-1,7)$. The line direction is $\\mathbf d=(0,1,1)$.\n\n**2. Find the distance using area divided by base.** The cross product is $\\mathbf d\\times(P-A)=(8,-2,2)$, so\n$$\nd(P,L)=\\frac{\\sqrt{8^2+(-2)^2+2^2}}{\\sqrt 2}=\\frac{6\\sqrt 2}{\\sqrt 2}=6.\n$$\n\n**3. Locate the perpendicular foot.** Project the displacement along the line using\n$$\nt=\\frac{(P-A)\\cdot\\mathbf d}{\\mathbf d\\cdot\\mathbf d}=\\frac{6}{2}=3.\n$$\nAt $t=3$, the nearest point is $H=(1,5,2)$.\n\n**Check:** $(P-H)\\cdot\\mathbf d=(-2,-4,4)\\cdot(0,1,1)=0$, so the segment is perpendicular. Its length $\\|P-H\\|=6$ agrees with the distance formula."
+      },
+      {
+        "title": "Worked example: Distance between parallel lines",
+        "body": "**Given:** The parallel lines $5x-12y+60=0$ and $5x-12y-60=0$.\n\n**Find:** The perpendicular distance between the lines.\n\n**1. Choose a point on the first line.** If $x=0$, then $y=5$, so use $(0,5)$.\n\n**2. Measure to the other line.** Substitute into the second equation and divide the absolute value by the normal's length:\n$$\nd=\\frac{|-12(5)-60|}{\\sqrt{5^2+(-12)^2}}=\\frac{120}{13}\\approx9.23.\n$$\n\n**Shortcut:** When the normal coefficients are identical, subtract the constants and divide the absolute difference by the normal's length. If the normals are only proportional, rescale an entire equation first. In space, use the three-dimensional point-to-line formula on a point from one of the parallel lines."
+      }
+    ],
+    "summary": [
+      "The perpendicular foot minimizes the distance.",
+      "In two dimensions project onto the normal; in three dimensions use cross-product area divided by base.",
+      "For parallel lines, measure from a point on one line to the other."
+    ]
+  },
+  {
+    "section": "9.6",
+    "title": "Distance from a Point to a Plane",
+    "intro": "The shortest route from a point to a plane follows the normal direction. The same projection idea also gives the separation between parallel planes and, with an appropriate common normal, the distance between skew lines.",
+    "objectives": [
+      "Compute a point-to-plane distance and locate the perpendicular foot.",
+      "Find the separation and midplane of two parallel planes.",
+      "Use a common normal to find the distance between skew lines."
+    ],
+    "blocks": [
+      {
+        "title": "Project the displacement onto the normal",
+        "body": "Let $\\Pi:Ax+By+Cz+D=0$, with nonzero normal $\\mathbf n=(A,B,C)$, and let $P=(x_0,y_0,z_0)$. For any $Q$ on the plane, the signed component of $P-Q$ along the unit normal is $(P-Q)\\cdot\\mathbf n/\\|\\mathbf n\\|$. The plane equation gives $\\mathbf n\\cdot Q=-D$, so the distance is\n$$\nd(P,\\Pi)=\\frac{|Ax_0+By_0+Cz_0+D|}{\\sqrt{A^2+B^2+C^2}}.\n$$\nOnly the normal components belong in the denominator. Define the signed numerator $q=\\mathbf n\\cdot P+D$. The perpendicular foot is\n$$\nH=P-\\frac{q}{\\mathbf n\\cdot\\mathbf n}\\mathbf n.\n$$\nThis removes the signed normal displacement. Check $\\mathbf n\\cdot H+D=0$ to verify the foot."
+      },
+      {
+        "title": "Worked example: Distance and perpendicular foot",
+        "body": "**Given:** $P=(-1,2,-4)$ and the plane $8x-4y+8z+3=0$.\n\n**Find:** The distance to the plane and the perpendicular foot.\n\n**1. Evaluate the plane's left side.** The signed result is $q=8(-1)-4(2)+8(-4)+3=-45$. The normal is $\\mathbf n=(8,-4,8)$, of length $\\sqrt{64+16+64}=12$.\n\n**2. Find the distance.** Divide the absolute value by the normal's length: $45/12=15/4=3.75$ units. The sign of $q$ identifies which side of the plane the point lies on relative to the chosen normal.\n\n**3. Find the foot by moving along the normal.** Since $\\|\\mathbf n\\|^2=144$, subtract $(q/144)\\mathbf n$ from $P$:\n$$\nH=P+\\frac{45}{144}(8,-4,8)=\\left(\\frac32,\\frac34,-\\frac32\\right).\n$$\n\n**Check:** At $H$ the left side is $12-3-12+3=0$. The segment from $P$ to $H$ also follows the normal, so it is perpendicular to the plane.\n\n**The same method in the recording.** For $(3,1,2)$ and $2x-y+2z-3=0$, the left side is $6-1+4-3=6$. The normal has length $3$, so the distance is $2$ units."
+      },
+      {
+        "title": "Worked example: Parallel planes and a midplane",
+        "body": "**Given:** $2x-y+2z+4=0$ and $2x-y+2z+16=0$.\n\n**Find:** The distance between the planes and the plane halfway between them.\n\n**1. Match the normal coefficients.** Both normals already equal $(2,-1,2)$. If they were only proportional, you would rescale an entire equation first.\n\n**2. Subtract the constants and divide by the length of the normal.** A point on the first plane makes $2x-y+2z=-4$. In the second equation, the left side at that point is $-4+16=12$. The normal has length $3$, so the distance is $12/3=4$ units.\n\n**3. Average the constants.** The midpoint constant is $(4+16)/2=10$. The midplane is $2x-y+2z+10=0$.\n\n**Check:** The midplane's constant differs from each original constant by $6$, so it is $6/3=2$ units from each. Intersecting planes have distance zero, so they do not use this parallel-plane formula."
+      },
+      {
+        "title": "Worked example: The common normal of skew lines",
+        "body": "**Given:** Lines with points $P=(-2,1,0)$ and $Q=(0,1,0)$, and directions $\\mathbf d_1=(1,-1,1)$ and $\\mathbf d_2=(1,1,2)$ respectively.\n\n**Find:** The shortest distance between these skew lines.\n\n**1. Find a direction perpendicular to both lines.** The cross product is $\\mathbf n=\\mathbf d_1\\times\\mathbf d_2=(-3,-1,2)$ and its length is $\\sqrt{14}$.\n\n**2. Put one plane through each line.** Use the same normal for both planes. Substituting $P$ and $Q$ gives $-3x-y+2z=5$ and $-3x-y+2z=-1$. Each plane contains its entire line because that line's direction is perpendicular to the normal.\n\n**3. Find the planes' separation.** Their distance is $|5-(-1)|/\\sqrt{14}=6/\\sqrt{14}\\approx1.60$ units. If you shift one line perpendicularly into the other plane, the two nonparallel lines there intersect. That shows why the lines can get exactly as close as the planes.\n\n**Equivalent calculation.** Project $Q-P$ directly onto the common normal:\n$$\nd(L_1,L_2)=\\frac{|(Q-P)\\cdot(\\mathbf d_1\\times\\mathbf d_2)|}{\\|\\mathbf d_1\\times\\mathbf d_2\\|}.\n$$\nHere $(Q-P)\\cdot\\mathbf n=(2,0,0)\\cdot(-3,-1,2)=-6$, which gives the same distance."
+      },
+      {
+        "title": "Choosing the method and interpreting zero",
+        "body": "The skew-line numerator is the magnitude of a scalar triple product. Geometrically it is a parallelepiped volume; dividing by the base area $\\|\\mathbf d_1\\times\\mathbf d_2\\|$ gives its height. If the directions are nonparallel but the triple product is zero, the lines are coplanar and intersect, so the distance is zero. If the directions are parallel, the cross-product denominator vanishes; use a point-to-line calculation instead.\n\nFor a line and a plane, a crossing or a line contained in the plane gives distance zero. If the line is distinct and parallel to the plane, choose any point on the line and use the point-to-plane formula."
+      }
+    ],
+    "summary": [
+      "The point-to-plane distance is the magnitude of the displacement along a unit normal.",
+      "Normalize parallel equations to identical coefficients before comparing constants.",
+      "For nonparallel lines, use the common normal and take the absolute scalar projection."
+    ]
+  }
+]

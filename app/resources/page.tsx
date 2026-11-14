@@ -8,6 +8,7 @@ export default function ResourcesPage() {
     <>
       <PageHeader eyebrow="Chapters 8 and 9" title="Resources" description="Downloads and references." />
       <section className="section-shell page-section">
+        <Link href="/submission" className="secondary-action mb-7">Submission guide and rubric</Link>
         <div className="grid gap-5 md:grid-cols-2">
           <article className="border border-white/15 bg-[#111] p-6 sm:p-8">
             <h2 className="text-2xl font-semibold">Formula sheet</h2>
@@ -20,6 +21,13 @@ export default function ResourcesPage() {
             <a href="/course/website.pdf" download="MCV4U_Lines_and_Planes_Website.pdf" className="primary-action mt-6">Download course PDF</a>
           </article>
         </div>
+        <section className="mt-12 border-t border-white/15 pt-7" aria-labelledby="course-tools-title">
+          <h2 id="course-tools-title" className="text-2xl font-semibold">Tools</h2>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link href="/visualizer" className="secondary-action">Visualizer</Link>
+            <Link href="/calculator" className="secondary-action">Calculator</Link>
+          </div>
+        </section>
         <section className="mt-12 border-t border-white/15 pt-7" aria-labelledby="lesson-slides-title">
           <h2 id="lesson-slides-title" className="text-2xl font-semibold">Lesson slides</h2>
           <div className="mt-5 flex flex-wrap gap-3"><a href="/course/slides/video-1-lines.pptx" download className="secondary-action">Video 1 Sections 8.1 to 8.3</a><a href="/course/slides/video-2-planes.pptx" download className="secondary-action">Video 2 Sections 8.4 to 8.6</a></div>

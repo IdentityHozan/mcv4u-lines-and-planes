@@ -6,6 +6,9 @@ import { MathJaxRenderer } from "@/components/ui/MathJaxRenderer";
 import { KATCBadge } from "./KATCBadge";
 import { StepByStepSolution } from "./StepByStepSolution";
 import { homeworkSets } from "@/data/linesAndPlanesData";
+import { WorkedSketch } from "./WorkedSketch";
+import { StudyPrompt } from "./StudyPrompt";
+import { HomeworkReview } from "./HomeworkReview";
 
 import { courseUnits, homeworkHref, quizHref, testHref, unitForSection } from "@/data/courseUnits";
 
@@ -98,20 +101,22 @@ export function HomeworkModule({ initialSection }: { initialSection?: string }) 
           </div>
         </div>
 
+        <p className="mt-5 max-w-[62ch] text-base leading-7 text-zinc-300">{selected.focus} Try each question before opening its hint or solution.</p>
         <div className="mt-5 space-y-4">
           {selected.problems.map((problem, index) => {
             const isComplete = completed.includes(problem.id);
             return (
               <article key={problem.id} className={`border bg-[#111] p-5 sm:p-6 ${isComplete ? "border-sky-400/25" : "border-white/10"}`}>
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="flex gap-4">
-                    <span className="font-mono text-xs text-zinc-600">{String(index + 1).padStart(2, "0")}</span>
-                    <div>
-                      <div className="flex flex-wrap gap-2">
+                  <div className="flex min-w-0 gap-4">
+                    <span className="font-mono text-sm font-semibold text-sky-200">{String(index + 1).padStart(2, "0")}</span>
+                    <div className="min-w-0">
+                      <h4 className="text-lg font-semibold text-zinc-100">{problem.title}</h4>
+                      <StudyPrompt prompt={problem.prompt} className="mt-3 max-w-[70ch] text-base leading-7 text-zinc-200" />
+                      <HomeworkReview section={selected.number} review={problem.review} />
+                      <div className="mt-3 flex flex-wrap gap-2">
                         {problem.tags.map((tag) => <KATCBadge key={tag} category={tag} />)}
                       </div>
-                      <h4 className="mt-4 text-lg font-semibold text-zinc-200">{problem.title}</h4>
-                      <MathJaxRenderer math={problem.prompt} className="mt-3 max-w-3xl text-base leading-8 text-zinc-200" />
                     </div>
                   </div>
                   <button
@@ -136,7 +141,7 @@ export function HomeworkModule({ initialSection }: { initialSection?: string }) 
                 </details>
 
                 <div className="mt-5">
-                  <StepByStepSolution steps={problem.steps} answer={problem.answer} />
+                  <StepByStepSolution steps={problem.steps} answer={problem.answer}><WorkedSketch questionId={problem.id} /></StepByStepSolution>
                 </div>
               </article>
             );
